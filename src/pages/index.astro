@@ -1,17 +1,155 @@
 ---
-
+import Layout from "../layouts/layout.astro";
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
-</html>
+<Layout title="GigToGo">
+  <section class="hero">
+    <div class="hero-overlay">
+      <div class="container hero-top">
+        <a class="brand" href="/">
+          <img class="brand-logo" src="/GigToGo_logo.png" alt="GigToGo" />
+        </a>
+        <div class="nav-actions">
+          <a class="btn btn-secondary" href="/auth/signin">Sign In</a>
+          <a class="btn btn-primary" href="/auth/register">Sign Up</a>
+        </div>
+      </div>
+
+      <div class="container hero-content">
+        <h1 class="hero-title">Work when you want. Hire when you need.</h1>
+        <p class="hero-text">
+          Match with flexible hospitality shifts in minutes, or fill open roles with verified workers.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="/worker/shifts">Find Shifts</a>
+          <a class="btn btn-secondary" href="/business/create-shift">Hire Staff</a>
+        </div>
+      </div>
+    </div>
+    <div class="hero-badge">
+      <img src="/GigToGo_icon.png" alt="GigToGo icon" />
+    </div>
+    <div class="hero-accent"></div>
+    <div class="hero-curve" aria-hidden="true"></div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <p class="section-kicker">How GigToGo works</p>
+      <div class="feature-row">
+        <div class="feature-card">
+          <i class="fa-solid fa-briefcase"></i>
+          <h4>Find a Company or Shift</h4>
+          <p>Browse open roles and book a shift in minutes.</p>
+        </div>
+        <div class="feature-card">
+          <i class="fa-solid fa-bolt"></i>
+          <h4>Tap Match, Work</h4>
+          <p>Instantly connect with verified venues and teams.</p>
+        </div>
+        <div class="feature-card">
+          <i class="fa-solid fa-user-shield"></i>
+          <h4>Safe &amp; Reliable</h4>
+          <p>Work with trusted businesses and clear expectations.</p>
+        </div>
+      </div>
+
+      <p class="section-subtitle" style="margin-top:26px;">
+        We connect hospitality teams with reliable staff, fast.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container media-card">
+      <div class="split-card">
+        <div class="video-card">
+          <div class="video-thumb">
+            <span class="play-btn">▶</span>
+          </div>
+        </div>
+        <div class="promo-card">
+          <img class="promo-logo" src="/GigToGo_logo.png" alt="GigToGo" />
+          <p>Flexible work. Reliable staffing.</p>
+        </div>
+      </div>
+      <div class="logo-row">
+        <img src="/maldron_logopng.png" alt="Maldron" />
+        <img src="/butlers_logo.png" alt="Butlers" />
+        <img class="logo-invert" src="/doomslice_logo.webp" alt="Doom Slice" />
+        <img src="/starbucks_logo.png" alt="Starbucks" />
+        <img src="/insomnia_logo.webp" alt="Insomnia" />
+        <img src="/travelodge_logo.png" alt="Travelodge" />
+      </div>
+    </div>
+  </section>
+
+  <section class="section testimonials">
+    <div class="container">
+      <h2 class="section-title">What Our Clients Say About Us</h2>
+      <div class="cards">
+        <div class="card">
+          <div class="avatar">L</div>
+          <strong>Leo</strong>
+          <div class="stars">★★★★★</div>
+          <main>“Helped me finding a great job.”</main>
+        </div>
+        <div class="card main-card">
+          <div class="avatar">R</div>
+          <strong>Rita</strong>
+          <div class="stars">★★★★★</div>
+          <main>“It was a very good experience.”</main>
+        </div>
+        <div class="card">
+          <div class="avatar">A</div>
+          <strong>Ahmed</strong>
+          <div class="stars">★★★★★</div>
+          <main>“The app works perfectly and is easy to use.”</main>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section cta">
+    <div class="container">
+      <div class="cta-box">
+        <div>
+          <h2>Ready to take the next step?</h2>
+          <p>Find jobs or hire staff easily.</p>
+          <div class="hero-actions" style="margin-top:18px;">
+            <a href="/worker/shifts" class="btn btn-secondary">Find Shifts</a>
+            <a href="/business/create-shift" class="btn btn-primary">Hire Staff</a>
+          </div>
+        </div>
+        <div class="cta-art">Illustration</div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="footer-curve" aria-hidden="true">
+      <svg viewBox="0 0 1440 120" preserveAspectRatio="none">
+        <path
+          d="M0,40 C240,90 480,90 720,40 C960,-10 1200,-10 1440,40 L1440,0 L0,0 Z"
+          fill="#fffaf1"
+        />
+      </svg>
+    </div>
+    <div class="container footer-grid">
+      <div>
+        <img class="brand-logo footer-logo" src="/GigToGo_logo.png" alt="GigToGo" />
+        <small>Flexible work. Reliable staffing.</small>
+      </div>
+      <div class="footer-links">
+        <a href="/">Home</a>
+        <a href="/about">About</a>
+        <a href="/auth/signin">Sign In</a>
+        <a href="/auth/register">Register</a>
+      </div>
+      <form class="footer-form">
+        <input type="email" placeholder="Email address" />
+        <button class="btn btn-primary" type="submit">Submit</button>
+      </form>
+    </div>
+  </footer>
+</Layout>
