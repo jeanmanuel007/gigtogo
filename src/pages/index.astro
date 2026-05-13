@@ -1,155 +1,265 @@
 ---
 import Layout from "../layouts/layout.astro";
+
+const featuredShifts = [
+  {
+    role: "Barista",
+    company: "Insomnia Coffee",
+    time: "Today · 2:00 PM - 8:00 PM",
+    pay: "€14.50/hr",
+    location: "Stoneybatter",
+    logo: "/insomnia_logo.webp",
+  },
+  {
+    role: "Wait Staff",
+    company: "Butlers",
+    time: "Sat · 12:00 PM - 6:00 PM",
+    pay: "€14.90/hr",
+    location: "Grafton Street",
+    logo: "/butlers_logo.png",
+  },
+  {
+    role: "Front of House",
+    company: "Maldron Hotel",
+    time: "Mon · 9:00 AM - 5:00 PM",
+    pay: "€15.40/hr",
+    location: "Smithfield",
+    logo: "/maldron_logopng.png",
+  },
+];
 ---
 
 <Layout title="GigToGo">
-  <section class="hero">
-    <div class="hero-overlay">
-      <div class="container hero-top">
-        <a class="brand" href="/">
-          <img class="brand-logo" src="/GigToGo_logo.png" alt="GigToGo" />
-        </a>
-        <div class="nav-actions">
-          <a class="btn btn-secondary" href="/auth/signin">Sign In</a>
-          <a class="btn btn-primary" href="/auth/register">Sign Up</a>
-        </div>
-      </div>
+  <main>
+    <section class="home-hero">
+      <header class="home-nav">
+        <div class="container">
+          <a href="/" class="home-logo" aria-label="GigToGo home">
+            <img src="/GigToGo_logo_white.svg" alt="GigToGo" />
+          </a>
 
-      <div class="container hero-content">
-        <h1 class="hero-title">Work when you want. Hire when you need.</h1>
-        <p class="hero-text">
-          Match with flexible hospitality shifts in minutes, or fill open roles with verified workers.
-        </p>
-        <div class="hero-actions">
-          <a class="btn btn-primary" href="/worker/shifts">Find Shifts</a>
-          <a class="btn btn-secondary" href="/business/create-shift">Hire Staff</a>
-        </div>
-      </div>
-    </div>
-    <div class="hero-badge">
-      <img src="/GigToGo_icon.png" alt="GigToGo icon" />
-    </div>
-    <div class="hero-accent"></div>
-    <div class="hero-curve" aria-hidden="true"></div>
-  </section>
+          <nav class="home-nav-links" aria-label="Home navigation">
+            <a href="#how-it-works">How it works</a>
+            <a href="#live-shifts">Live shifts</a>
+            <a href="#for-business">For businesses</a>
+          </nav>
 
-  <section class="section">
-    <div class="container">
-      <p class="section-kicker">How GigToGo works</p>
-      <div class="feature-row">
-        <div class="feature-card">
-          <i class="fa-solid fa-briefcase"></i>
-          <h4>Find a Company or Shift</h4>
-          <p>Browse open roles and book a shift in minutes.</p>
-        </div>
-        <div class="feature-card">
-          <i class="fa-solid fa-bolt"></i>
-          <h4>Tap Match, Work</h4>
-          <p>Instantly connect with verified venues and teams.</p>
-        </div>
-        <div class="feature-card">
-          <i class="fa-solid fa-user-shield"></i>
-          <h4>Safe &amp; Reliable</h4>
-          <p>Work with trusted businesses and clear expectations.</p>
-        </div>
-      </div>
-
-      <p class="section-subtitle" style="margin-top:26px;">
-        We connect hospitality teams with reliable staff, fast.
-      </p>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="container media-card">
-      <div class="split-card">
-        <div class="video-card">
-          <div class="video-thumb">
-            <span class="play-btn">▶</span>
+          <div class="nav-actions">
+            <a href="/auth/signin" class="btn btn-secondary">Sign in</a>
+            <a href="/auth/register" class="btn btn-primary">Get started</a>
           </div>
         </div>
-        <div class="promo-card">
-          <img class="promo-logo" src="/GigToGo_logo.png" alt="GigToGo" />
-          <p>Flexible work. Reliable staffing.</p>
-        </div>
-      </div>
-      <div class="logo-row">
-        <img src="/maldron_logopng.png" alt="Maldron" />
-        <img src="/butlers_logo.png" alt="Butlers" />
-        <img class="logo-invert" src="/doomslice_logo.webp" alt="Doom Slice" />
-        <img src="/starbucks_logo.png" alt="Starbucks" />
-        <img src="/insomnia_logo.webp" alt="Insomnia" />
-        <img src="/travelodge_logo.png" alt="Travelodge" />
-      </div>
-    </div>
-  </section>
+      </header>
 
-  <section class="section testimonials">
-    <div class="container">
-      <h2 class="section-title">What Our Clients Say About Us</h2>
-      <div class="cards">
-        <div class="card">
-          <div class="avatar">L</div>
-          <strong>Leo</strong>
-          <div class="stars">★★★★★</div>
-          <main>“Helped me finding a great job.”</main>
-        </div>
-        <div class="card main-card">
-          <div class="avatar">R</div>
-          <strong>Rita</strong>
-          <div class="stars">★★★★★</div>
-          <main>“It was a very good experience.”</main>
-        </div>
-        <div class="card">
-          <div class="avatar">A</div>
-          <strong>Ahmed</strong>
-          <div class="stars">★★★★★</div>
-          <main>“The app works perfectly and is easy to use.”</main>
+      <div class="home-hero-stage">
+        <div class="container home-hero-grid">
+          <div class="home-hero-copy">
+            <p class="home-eyebrow">Flexible work across Dublin</p>
+            <h1>Find shifts today. Get paid faster.</h1>
+            <p>
+              GigToGo helps workers find nearby hospitality shifts and helps businesses fill urgent roles with verified people.
+            </p>
+
+            <div class="home-hero-actions">
+              <a href="/auth/register" class="btn btn-primary">
+                Find shifts
+                <i class="fa-solid fa-arrow-right"></i>
+              </a>
+              <a href="/business/create-shift" class="btn btn-secondary">Post a shift</a>
+            </div>
+
+            <div class="home-trust-row" aria-label="GigToGo highlights">
+              <span><strong>48</strong> live shifts</span>
+              <span><strong>12</strong> new today</span>
+              <span><strong>€15.60</strong> avg pay</span>
+            </div>
+          </div>
+
+          <div class="home-hero-panel" aria-label="GigToGo preview">
+            <div class="home-preview-top">
+              <span>Next shift</span>
+              <strong>14:00 - 22:00</strong>
+            </div>
+
+            <div class="home-preview-card active">
+              <img src="/insomnia_logo.webp" alt="" />
+              <div>
+                <strong>Waitress</strong>
+                <span>Insomnia Coffee · Temple Bar</span>
+              </div>
+              <em>Start</em>
+            </div>
+
+            <div class="home-preview-card">
+              <img src="/travelodge_logo.png" alt="" />
+              <div>
+                <strong>Kitchen Porter</strong>
+                <span>Travelodge · Docklands</span>
+              </div>
+              <em>€15.80/hr</em>
+            </div>
+
+            <div class="home-preview-pay">
+              <span>Payment to receive</span>
+              <strong>€428.00</strong>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <section class="section cta">
-    <div class="container">
-      <div class="cta-box">
+    <section class="section home-role-section">
+      <div class="container">
+        <div class="home-role-grid">
+          <article class="home-role-card">
+            <i class="fa-solid fa-user-clock"></i>
+            <h2>I want flexible work</h2>
+            <p>Browse shifts, apply quickly, clock in, and track payment from your worker dashboard.</p>
+            <a href="/auth/register" class="btn btn-primary">Join as worker</a>
+          </article>
+
+          <article class="home-role-card business" id="for-business">
+            <i class="fa-solid fa-shop"></i>
+            <h2>I need staff</h2>
+            <p>Post shifts, review applicants, and fill last-minute hospitality gaps with less admin.</p>
+            <a href="/business/create-shift" class="btn btn-secondary">Hire staff</a>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section home-how" id="how-it-works">
+      <div class="container">
+        <p class="section-kicker">How GigToGo works</p>
+        <h2 class="section-title">Three steps from profile to payday</h2>
+
+        <div class="home-step-grid">
+          <article>
+            <span>1</span>
+            <h3>Create your profile</h3>
+            <p>Add your skills, availability, and location so the right shifts surface first.</p>
+          </article>
+
+          <article>
+            <span>2</span>
+            <h3>Apply or post</h3>
+            <p>Workers apply in minutes. Businesses review applicants from one simple dashboard.</p>
+          </article>
+
+          <article>
+            <span>3</span>
+            <h3>Work and track pay</h3>
+            <p>Clock in for shifts, view upcoming work, and see what payment is on the way.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section home-live" id="live-shifts">
+      <div class="container">
+        <div class="home-section-head">
+          <div>
+            <p class="section-kicker">Live opportunities</p>
+            <h2>Popular shifts near you</h2>
+          </div>
+          <a href="/worker/shifts">View all shifts</a>
+        </div>
+
+        <div class="home-shift-grid">
+          {featuredShifts.map((shift) => (
+            <article class="home-shift-card">
+              <img src={shift.logo} alt="" />
+              <div>
+                <strong>{shift.role}</strong>
+                <span>{shift.company}</span>
+                <small>{shift.location} · {shift.time}</small>
+              </div>
+              <em>{shift.pay}</em>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="section home-proof">
+      <div class="container home-proof-grid">
         <div>
-          <h2>Ready to take the next step?</h2>
-          <p>Find jobs or hire staff easily.</p>
-          <div class="hero-actions" style="margin-top:18px;">
-            <a href="/worker/shifts" class="btn btn-secondary">Find Shifts</a>
-            <a href="/business/create-shift" class="btn btn-primary">Hire Staff</a>
+          <p class="section-kicker">Built for real shifts</p>
+          <h2>Everything after login is ready for the workday.</h2>
+          <p>
+            Workers get a home dashboard with available shifts, next shifts, applications, messages, notifications, clock-in tools, and payment tracking.
+          </p>
+        </div>
+
+        <div class="home-dashboard-snapshot" aria-label="Worker dashboard features">
+          <div>
+            <i class="fa-regular fa-calendar-check"></i>
+            <span>Next shift</span>
+            <strong>Today · 14:00</strong>
+          </div>
+          <div>
+            <i class="fa-solid fa-stopwatch"></i>
+            <span>Clock in</span>
+            <strong>Ready</strong>
+          </div>
+          <div>
+            <i class="fa-solid fa-wallet"></i>
+            <span>To receive</span>
+            <strong>€428</strong>
           </div>
         </div>
-        <div class="cta-art">Illustration</div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <footer class="footer">
-    <div class="footer-curve" aria-hidden="true">
-      <svg viewBox="0 0 1440 120" preserveAspectRatio="none">
-        <path
-          d="M0,40 C240,90 480,90 720,40 C960,-10 1200,-10 1440,40 L1440,0 L0,0 Z"
-          fill="#fffaf1"
-        />
-      </svg>
-    </div>
-    <div class="container footer-grid">
-      <div>
-        <img class="brand-logo footer-logo" src="/GigToGo_logo.png" alt="GigToGo" />
-        <small>Flexible work. Reliable staffing.</small>
+    <section class="section testimonials">
+      <div class="container">
+        <p class="section-kicker">Trusted locally</p>
+        <h2 class="section-title">Workers and businesses stay in sync</h2>
+
+        <div class="cards">
+          <article class="card">
+            <div class="avatar">A</div>
+            <strong>Aoife · Worker</strong>
+            <main>
+              I can see shifts, apply, and keep track of what I have earned in one place.
+            </main>
+          </article>
+
+          <article class="card main-card">
+            <div class="avatar">M</div>
+            <strong>Mary · Worker</strong>
+            <main>
+              The clock-in and payment view makes each shift much easier to manage.
+            </main>
+            <div class="stars">★★★★★</div>
+          </article>
+
+          <article class="card">
+            <div class="avatar">G</div>
+            <strong>Grano · Business</strong>
+            <main>
+              We can post urgent shifts and review applicants without chasing messages.
+            </main>
+          </article>
+        </div>
       </div>
-      <div class="footer-links">
-        <a href="/">Home</a>
-        <a href="/about">About</a>
-        <a href="/auth/signin">Sign In</a>
-        <a href="/auth/register">Register</a>
+    </section>
+
+    <section class="section cta">
+      <div class="container">
+        <div class="home-cta-box">
+          <div>
+            <img src="/GigToGo_logo.svg" alt="GigToGo" />
+            <h2>Ready to start with GigToGo?</h2>
+            <p>Choose worker or business and get to the right dashboard in a few clicks.</p>
+          </div>
+
+          <div class="home-cta-actions">
+            <a href="/auth/register" class="btn btn-primary">Create account</a>
+            <a href="/auth/signin" class="btn btn-secondary">Sign in</a>
+          </div>
+        </div>
       </div>
-      <form class="footer-form">
-        <input type="email" placeholder="Email address" />
-        <button class="btn btn-primary" type="submit">Submit</button>
-      </form>
-    </div>
-  </footer>
+    </section>
+  </main>
 </Layout>

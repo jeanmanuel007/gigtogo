@@ -1,0 +1,165 @@
+---
+import Layout from "../../layouts/layout.astro";
+import AppSidebar from "../../components/AppSidebar.astro";
+import { hasSupabaseConfig, supabaseFetch } from "../../lib/supabaseServer";
+
+export const prerender = false;
+
+const fallbackApplicants = [
+  {
+    applicationId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    shiftId: "11111111-1111-4111-8111-111111111111",
+    workerId: "77777777-7777-4777-8777-777777777777",
+    name: "Rose Murphy",
+    role: "Barista",
+    shift: "Barista | 20 hours/week",
+    location: "Stoneybatter",
+    experience: "2 years experience",
+    rating: "4.9",
+    status: "New applicant",
+    avatar: "R",
+  },
+  {
+    applicationId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+    shiftId: "44444444-4444-4444-8444-444444444444",
+    workerId: "88888888-8888-4888-8888-888888888888",
+    name: "Daniel O'Brien",
+    role: "Wait Staff",
+    shift: "Wait Staff | Weekend shift",
+    location: "Dublin City Centre",
+    experience: "1 year experience",
+    rating: "4.7",
+    status: "Available",
+    avatar: "D",
+  },
+  {
+    applicationId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+    shiftId: "33333333-3333-4333-8333-333333333333",
+    workerId: "99999999-9999-4999-8999-999999999999",
+    name: "Aoife Kelly",
+    role: "Kitchen Porter",
+    shift: "Kitchen Porter | Evening shift",
+    location: "Smithfield",
+    experience: "3 years experience",
+    rating: "5.0",
+    status: "Top rated",
+    avatar: "A",
+  },
+];
+
+const token = Astro.cookies.get("gigtogo_access_token")?.value;
+const userId = Astro.cookies.get("gigtogo_user_id")?.value;
+const error = Astro.url.searchParams.get("error");
+const notice = Astro.url.searchParams.get("notice");
+
+let applicants = fallbackApplicants;
+
+if (hasSupabaseConfig() && token && userId) {
+  try {
+    const rows = await supabaseFetch(
+      `/rest/v1/shift_applications?select=id,status,worker_id,shift_id,profiles!shift_applications_worker_id_fkey(full_name,email),shifts!inner(title,location,business_id)&shifts.business_id=eq.${userId}&order=created_at.desc`,
+      { token }
+    );
+
+    applicants = rows.map((row: any) => ({
+      applicationId: row.id,
+      shiftId: row.shift_id,
+      workerId: row.worker_id,
+      name: row.profiles?.full_name ?? row.profiles?.email ?? "Worker",
+      role: "Applicant",
+      shift: row.shifts?.title ?? "Shift",
+      location: row.shifts?.location ?? "Location pending",
+      experience: "Profile details available soon",
+      rating: "New",
+      status: row.status,
+      avatar: (row.profiles?.full_name ?? row.profiles?.email ?? "W").slice(0, 1).toUpperCase(),
+    }));
+  } catch {
+    applicants = fallbackApplicants;
+  }
+}
+---
+
+<Layout title="Applicants | GigToGo">
+  <main class="worker-ui">
+
+    <!-- SIDEBAR -->
+    <AppSidebar accountType="business" active="applications" />
+
+    <!-- MAIN -->
+    <section class="worker-ui-main">
+
+      <h2 style="margin-bottom: 20px; color: var(--blue);">
+        Applicants for your shifts
+      </h2>
+
+      {error && <p class="auth-alert error">{error}</p>}
+      {notice && <p class="auth-alert notice">{notice}</p>}
+
+      <div class="worker-ui-card-grid">
+
+        {applicants.map((user) => (
+          <div class="worker-shift-card">
+
+            <div class="worker-shift-card-body">
+
+              <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                <div style="
+                  width:40px;
+                  height:40px;
+                  border-radius:50%;
+                  background: var(--blue);
+                  color:#fff;
+                  display:flex;
+                  align-items:center;
+                  justify-content:center;
+                  font-weight:700;
+                ">
+                  {user.avatar}
+                </div>
+
+                <div>
+                  <strong>{user.name}</strong>
+                  <small style="display:block; color:#777;">{user.role}</small>
+                </div>
+              </div>
+
+              <small>{user.shift}</small>
+
+              <p style="margin-top:6px;">
+                <i class="fa-solid fa-location-dot"></i>
+                {user.location}
+              </p>
+
+              <p style="margin-top:4px; font-size:0.85rem; color:#555;">
+                {user.experience}
+              </p>
+
+              <p style="margin-top:4px;">
+                ⭐ {user.rating}
+              </p>
+
+              <span class="shift-badge" style="margin-top:8px; display:inline-block;">
+                {user.status}
+              </span>
+
+              <div class="shift-card-actions" style="margin-top:14px;">
+                <form method="POST" action="/api/applications/accept">
+                  <input type="hidden" name="application_id" value={user.applicationId} />
+                  <input type="hidden" name="shift_id" value={user.shiftId} />
+                  <input type="hidden" name="worker_id" value={user.workerId} />
+                  <button class="btn btn-primary" type="submit">Accept</button>
+                </form>
+                <button class="btn btn-secondary">Reject</button>
+              </div>
+
+            </div>
+          </div>
+        ))}
+
+      </div>
+
+    </section>
+
+  </main>
+</Layout>

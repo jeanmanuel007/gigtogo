@@ -1,0 +1,261 @@
+---
+import Layout from "../../layouts/layout.astro";
+import AppSidebar from "../../components/AppSidebar.astro";
+import WorkerTopActions from "../../components/workerTopActions.astro";
+import { hasSupabaseConfig, supabaseFetch } from "../../lib/supabaseServer";
+
+export const prerender = false;
+
+const fallbackShifts = [
+  {
+    id: "11111111-1111-4111-8111-111111111111",
+    title: "Barista",
+    company: "Insomnia Coffee",
+    type: "Part-time",
+    location: "Stoneybatter, Dublin",
+    time: "Today · 2:00 PM - 8:00 PM",
+    pay: "€14.50/hr",
+    distance: "1.8 km away",
+    tag: "Fast apply",
+    logo: "/insomnia_logo.webp",
+    image: "/image_home_1.png",
+  },
+  {
+    id: "22222222-2222-4222-8222-222222222222",
+    title: "Event Security",
+    company: "Luna Events",
+    type: "Evening",
+    location: "Temple Bar, Dublin",
+    time: "Tomorrow · 6:00 PM - 12:00 AM",
+    pay: "€17.00/hr",
+    distance: "3.2 km away",
+    tag: "Urgent",
+    logo: "/GigToGo_icon.png",
+    image: "/image_home_1.png",
+  },
+  {
+    id: "33333333-3333-4333-8333-333333333333",
+    title: "Kitchen Porter",
+    company: "Travelodge",
+    type: "Full-time",
+    location: "Docklands, Dublin",
+    time: "Fri · 7:00 AM - 3:00 PM",
+    pay: "€15.80/hr",
+    distance: "4.1 km away",
+    tag: "New",
+    logo: "/travelodge_logo.png",
+    image: "/image_home_1.png",
+  },
+  {
+    id: "44444444-4444-4444-8444-444444444444",
+    title: "Wait Staff",
+    company: "Butlers",
+    type: "Weekend",
+    location: "Grafton Street, Dublin",
+    time: "Sat · 12:00 PM - 6:00 PM",
+    pay: "€14.90/hr",
+    distance: "2.6 km away",
+    tag: "Popular",
+    logo: "/butlers_logo.png",
+    image: "/image_home_1.png",
+  },
+  {
+    id: "55555555-5555-4555-8555-555555555555",
+    title: "Shift Supervisor",
+    company: "Starbucks",
+    type: "Morning",
+    location: "Ranelagh, Dublin",
+    time: "Sun · 8:00 AM - 2:00 PM",
+    pay: "€16.20/hr",
+    distance: "5.4 km away",
+    tag: "Featured",
+    logo: "/starbucks_logo.png",
+    image: "/image_home_1.png",
+  },
+  {
+    id: "66666666-6666-4666-8666-666666666666",
+    title: "Front of House",
+    company: "Maldron Hotel",
+    type: "Flexible",
+    location: "Smithfield, Dublin",
+    time: "Mon · 9:00 AM - 5:00 PM",
+    pay: "€15.40/hr",
+    distance: "2.9 km away",
+    tag: "Verified",
+    logo: "/maldron_logopng.png",
+    image: "/image_home_1.png",
+  },
+];
+
+const token = Astro.cookies.get("gigtogo_access_token")?.value;
+const notice = Astro.url.searchParams.get("notice");
+const error = Astro.url.searchParams.get("error");
+
+let shifts = fallbackShifts;
+
+if (hasSupabaseConfig() && token) {
+  try {
+    const rows = await supabaseFetch(
+      "/rest/v1/shifts?status=eq.open&select=id,title,company,location,shift_date,start_time,end_time,pay_rate,shift_type,created_at&order=created_at.desc",
+      { token }
+    );
+
+    shifts = rows.map((shift: any) => ({
+      id: shift.id,
+      title: shift.title,
+      company: shift.company,
+      type: shift.shift_type,
+      location: shift.location,
+      time: `${shift.shift_date} · ${shift.start_time.slice(0, 5)} - ${shift.end_time.slice(0, 5)}`,
+      pay: `€${Number(shift.pay_rate).toFixed(2)}/hr`,
+      distance: "Nearby",
+      tag: "Open",
+      logo: "/GigToGo_icon.png",
+      image: "/image_home_1.png",
+    }));
+  } catch {
+    shifts = fallbackShifts;
+  }
+}
+---
+
+<Layout title="Available Shifts | GigToGo">
+  <main class="worker-ui">
+    <AppSidebar accountType="worker" active="shifts" />
+
+    <section class="worker-ui-main">
+      <header class="worker-ui-topbar">
+        <div class="worker-ui-search">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" placeholder="Search roles, companies or locations" />
+        </div>
+
+        <WorkerTopActions active="shifts" />
+      </header>
+
+      <div class="worker-ui-breadcrumb">
+        <span>Dashboard</span>
+        <span>/</span>
+        <strong>Available Shifts</strong>
+      </div>
+
+      {error && <p class="auth-alert error">{error}</p>}
+      {notice && <p class="auth-alert notice">{notice}</p>}
+
+      <section class="worker-ui-banner">
+        <img src="/image_home_1.png" alt="Available shifts banner" />
+        <div class="worker-ui-banner-overlay"></div>
+        <div class="worker-ui-banner-content">
+          <p>Available now</p>
+          <h1>Find nearby shifts that fit your week</h1>
+          <div class="worker-ui-banner-actions">
+            <a href="#shift-results" class="btn btn-primary">Browse shifts</a>
+            <a href="/worker/profile" class="btn btn-secondary">Update profile</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="worker-ui-stats" aria-label="Shift summary">
+        <article>
+          <strong>{shifts.length}</strong>
+          <span>Live shifts</span>
+        </article>
+        <article>
+          <strong>{shifts.length}</strong>
+          <span>New today</span>
+        </article>
+        <article>
+          <strong>€15.60</strong>
+          <span>Average hourly pay</span>
+        </article>
+      </section>
+
+      <section class="worker-ui-toolbar">
+        <div class="worker-ui-subsearch">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" placeholder="Search available shifts" />
+        </div>
+
+        <div class="worker-ui-filter-pills" aria-label="Shift filters">
+          <button type="button" class="active">All</button>
+          <button type="button">Today</button>
+          <button type="button">Weekend</button>
+          <button type="button">Highest pay</button>
+        </div>
+
+        <button type="button" class="worker-ui-sort">
+          <i class="fa-solid fa-arrow-down-wide-short"></i>
+          Newest
+        </button>
+      </section>
+
+      <section class="worker-ui-card-grid" id="shift-results">
+        {shifts.map((shift) => (
+          <article class="worker-shift-card">
+            <div class="worker-shift-card-image">
+              <a href={`/worker/shifts/${shift.id}`} aria-label={`View ${shift.title} at ${shift.company}`}>
+                <img src={shift.image} alt={shift.title} />
+              </a>
+              <span class="worker-shift-tag">{shift.tag}</span>
+              <button class="worker-shift-save" type="button" aria-label={`Save ${shift.title}`}>
+                <i class="fa-regular fa-heart"></i>
+              </button>
+            </div>
+
+            <div class="worker-shift-card-body">
+              <div class="worker-shift-company">
+                <img src={shift.logo} alt="" />
+                <div>
+                  <small>{shift.company}</small>
+                  <h3>{shift.title}</h3>
+                </div>
+              </div>
+
+              <div class="worker-shift-meta">
+                <p>
+                  <i class="fa-regular fa-clock"></i>
+                  {shift.time}
+                </p>
+                <p>
+                  <i class="fa-solid fa-location-dot"></i>
+                  {shift.location}
+                </p>
+              </div>
+
+              <div class="worker-shift-card-footer">
+                <div>
+                  <strong>{shift.pay}</strong>
+                  <span>{shift.distance}</span>
+                </div>
+                <span class="worker-shift-type">
+                  <i class="fa-solid fa-briefcase"></i>
+                  {shift.type}
+                </span>
+              </div>
+
+              <div class="worker-shift-actions">
+                <a href={`/worker/shifts/${shift.id}`} class="btn btn-secondary">Details</a>
+                <form method="POST" action="/api/shifts/apply">
+                  <input type="hidden" name="shift_id" value={shift.id} />
+                  <input type="hidden" name="back_to" value="/worker/shifts" />
+                  <button type="submit" class="btn btn-primary">
+                    Apply
+                    <i class="fa-solid fa-arrow-right"></i>
+                  </button>
+                </form>
+              </div>
+            </div>
+          </article>
+        ))}
+      </section>
+
+      <section class="worker-ui-insight">
+        <div>
+          <p>Profile tip</p>
+          <h2>Add your availability to get better shift matches.</h2>
+        </div>
+        <a href="/worker/profile" class="btn btn-primary">Complete profile</a>
+      </section>
+    </section>
+  </main>
+</Layout>

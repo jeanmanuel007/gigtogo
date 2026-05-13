@@ -1,0 +1,206 @@
+---
+import Layout from "../../layouts/layout.astro";
+import AppSidebar from "../../components/AppSidebar.astro";
+import WorkerTopActions from "../../components/workerTopActions.astro";
+
+const activeShifts = [
+  {
+    title: "Barista",
+    location: "Smithfield, Dublin",
+    time: "Today · 2:00 PM - 8:00 PM",
+    applicants: 8,
+    status: "Open",
+  },
+  {
+    title: "Wait Staff",
+    location: "Temple Bar, Dublin",
+    time: "Tomorrow · 5:00 PM - 11:00 PM",
+    applicants: 12,
+    status: "Reviewing",
+  },
+  {
+    title: "Kitchen Porter",
+    location: "Docklands, Dublin",
+    time: "Fri · 7:00 AM - 3:00 PM",
+    applicants: 5,
+    status: "Open",
+  },
+];
+
+const applicants = [
+  {
+    name: "Rose Murphy",
+    role: "Barista",
+    rating: "4.9",
+    status: "New",
+    avatar: "R",
+  },
+  {
+    name: "Daniel O'Brien",
+    role: "Wait Staff",
+    rating: "4.7",
+    status: "Available",
+    avatar: "D",
+  },
+  {
+    name: "Aoife Kelly",
+    role: "Kitchen Porter",
+    rating: "5.0",
+    status: "Top rated",
+    avatar: "A",
+  },
+];
+---
+
+<Layout title="Business Dashboard | GigToGo">
+  <main class="worker-ui">
+    <AppSidebar accountType="business" active="dashboard" />
+
+    <section class="worker-ui-main business-dashboard-page">
+      <header class="worker-ui-topbar">
+        <div class="worker-ui-search">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" placeholder="Search shifts, applicants or messages" />
+        </div>
+
+        <WorkerTopActions active="dashboard" accountType="business" />
+      </header>
+
+      <div class="worker-ui-breadcrumb">
+        <span>Business</span>
+        <span>/</span>
+        <strong>Dashboard</strong>
+      </div>
+
+      <section class="business-dashboard-hero">
+        <div>
+          <p>Business dashboard</p>
+          <h1>Manage shifts, applicants and staffing needs.</h1>
+          <span>Post urgent shifts, review candidates, and keep every role moving from one place.</span>
+          <div class="business-dashboard-hero-actions">
+            <a href="/business/create-shift" class="btn btn-primary">
+              Post a shift
+              <i class="fa-solid fa-arrow-right"></i>
+            </a>
+            <a href="/business/applications" class="btn btn-secondary">Review applicants</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="worker-dashboard-stats" aria-label="Business dashboard summary">
+        <article>
+          <i class="fa-regular fa-calendar"></i>
+          <strong>18</strong>
+          <span>Active shifts</span>
+        </article>
+        <article>
+          <i class="fa-regular fa-file-lines"></i>
+          <strong>42</strong>
+          <span>Applicants</span>
+        </article>
+        <article>
+          <i class="fa-solid fa-user-check"></i>
+          <strong>9</strong>
+          <span>Accepted</span>
+        </article>
+        <article>
+          <i class="fa-solid fa-bolt"></i>
+          <strong>6</strong>
+          <span>Urgent roles</span>
+        </article>
+      </section>
+
+      <section class="business-dashboard-grid">
+        <article class="worker-profile-panel business-dashboard-shifts">
+          <div class="worker-profile-panel-head">
+            <div>
+              <p>Hiring pipeline</p>
+              <h2>Active shifts</h2>
+            </div>
+            <a href="/business/shifts">See all</a>
+          </div>
+
+          <div class="business-dashboard-shift-list">
+            {activeShifts.map((shift) => (
+              <a href="/business/shifts">
+                <span>{shift.status}</span>
+                <div>
+                  <strong>{shift.title}</strong>
+                  <small>{shift.location} · {shift.time}</small>
+                </div>
+                <em>{shift.applicants} applicants</em>
+              </a>
+            ))}
+          </div>
+        </article>
+
+        <article class="worker-profile-panel business-dashboard-applicants">
+          <div class="worker-profile-panel-head">
+            <div>
+              <p>Applicants</p>
+              <h2>Needs review</h2>
+            </div>
+            <a href="/business/applications">Open</a>
+          </div>
+
+          <div class="business-dashboard-applicant-list">
+            {applicants.map((applicant) => (
+              <a href="/business/applications">
+                <span>{applicant.avatar}</span>
+                <div>
+                  <strong>{applicant.name}</strong>
+                  <small>{applicant.role} · {applicant.status}</small>
+                </div>
+                <em>
+                  <i class="fa-solid fa-star"></i>
+                  {applicant.rating}
+                </em>
+              </a>
+            ))}
+          </div>
+        </article>
+
+        <article class="worker-profile-panel business-dashboard-actions">
+          <div class="worker-profile-panel-head">
+            <div>
+              <p>Quick actions</p>
+              <h2>Run staffing faster</h2>
+            </div>
+          </div>
+
+          <div class="business-dashboard-action-grid">
+            <a href="/business/create-shift">
+              <i class="fa-solid fa-circle-plus"></i>
+              <strong>Create shift</strong>
+              <span>Publish a new opening</span>
+            </a>
+            <a href="/business/applications">
+              <i class="fa-solid fa-user-check"></i>
+              <strong>Accept worker</strong>
+              <span>Review applications</span>
+            </a>
+            <a href="/business/shifts">
+              <i class="fa-regular fa-calendar-check"></i>
+              <strong>Manage shifts</strong>
+              <span>Track open roles</span>
+            </a>
+          </div>
+        </article>
+
+        <article class="worker-profile-panel business-dashboard-note">
+          <div class="worker-profile-panel-head">
+            <div>
+              <p>Today</p>
+              <h2>Staffing note</h2>
+            </div>
+            <span>Live</span>
+          </div>
+
+          <p>
+            Three roles are close to full coverage. Review high-rated applicants first to confirm staffing before peak hours.
+          </p>
+        </article>
+      </section>
+    </section>
+  </main>
+</Layout>

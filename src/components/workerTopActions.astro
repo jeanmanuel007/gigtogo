@@ -1,0 +1,166 @@
+---
+const { active = "profile", accountType = "worker" } = Astro.props;
+
+const isBusiness = accountType === "business";
+const menuUser = isBusiness ? "Business Account" : "Mary O'Connor";
+const menuSubtitle = isBusiness ? "Company settings" : "Profile";
+const dashboardHref = isBusiness ? "/business/dashboard" : "/worker/dashboard";
+const profileHref = isBusiness ? "/business/dashboard" : "/worker/profile";
+const applicationsHref = isBusiness ? "/business/applications" : "/worker/applications";
+const shiftsHref = isBusiness ? "/business/shifts" : "/worker/shifts";
+const primaryActionHref = isBusiness ? "/business/applications" : "/worker/shifts";
+const primaryActionLabel = isBusiness ? "Review" : "Apply";
+---
+
+<div class="worker-ui-top-actions">
+  <details class="worker-ui-popover worker-ui-messages-menu">
+    <summary class="worker-ui-icon-btn" aria-label="Open messages">
+      <i class="fa-regular fa-message"></i>
+      <span>3</span>
+    </summary>
+
+    <div class="worker-ui-dropdown worker-ui-message-dropdown">
+      <div class="worker-ui-dropdown-head centered">
+        <h3>Messages <span>82</span></h3>
+      </div>
+
+      <div class="worker-ui-dropdown-tabs">
+        <button type="button" class="active">All <span>3</span></button>
+        <button type="button">Mentions <span>2</span></button>
+        <button type="button">Unread <span>3</span></button>
+      </div>
+
+      <div class="worker-ui-message-list">
+        <a href="#" class="unread">
+          <span class="worker-ui-message-avatar">MA</span>
+          <div>
+            <strong>Maria Ayala</strong>
+            <p>Thank you for all your help with this last minute shift!</p>
+          </div>
+          <small>2:14 PM</small>
+        </a>
+
+        <a href="#">
+          <span class="worker-ui-message-avatar hotel">MH</span>
+          <div>
+            <strong>Maldron Hotels</strong>
+            <p>You: We regret to inform you that...</p>
+          </div>
+          <small>2:14 PM</small>
+        </a>
+
+        <a href="#">
+          <span class="worker-ui-message-avatar coffee">CG</span>
+          <div>
+            <strong>Coffee The Stranger Group</strong>
+            <p>@Majo: Hmm, are you sure?</p>
+          </div>
+          <small>10:16 PM</small>
+        </a>
+      </div>
+
+      <div class="worker-ui-dropdown-bottom">
+        <a href="#" class="active">
+          <i class="fa-regular fa-comments"></i>
+          Chats
+        </a>
+        <a href="#">
+          <i class="fa-solid fa-at"></i>
+          Mentions
+        </a>
+      </div>
+    </div>
+  </details>
+
+  <details class="worker-ui-popover worker-ui-notifications-menu">
+    <summary class="worker-ui-icon-btn" aria-label="Open notifications">
+      <i class="fa-regular fa-bell"></i>
+      <span>2</span>
+    </summary>
+
+    <div class="worker-ui-dropdown worker-ui-notification-dropdown">
+      <div class="worker-ui-dropdown-head">
+        <h3>Notifications <span>2</span></h3>
+        <div>
+          <i class="fa-solid fa-check-double"></i>
+          <i class="fa-solid fa-xmark"></i>
+        </div>
+      </div>
+
+      <div class="worker-ui-dropdown-tabs">
+        <button type="button" class="active">All <span>2</span></button>
+        <button type="button">Mentions <span>2</span></button>
+        <button type="button">Unread <span>2</span></button>
+      </div>
+
+      <div class="worker-ui-notification-list">
+        <article class="highlight">
+          <span class="worker-ui-notification-avatar">AB</span>
+          <div>
+            <p><strong>Arling Boutique</strong> has sent you a message request.</p>
+            <div class="worker-ui-notification-actions">
+              <button type="button">Accept</button>
+              <button type="button">Decline</button>
+            </div>
+          </div>
+          <small>2m</small>
+        </article>
+
+        <article>
+          <span class="worker-ui-notification-avatar photo">P</span>
+          <div>
+            <p><strong>Patrick</strong> added a review on your Profile</p>
+            <blockquote>She was perfect, professional and efficient.</blockquote>
+          </div>
+          <small>8h</small>
+        </article>
+
+        <article>
+          <span class="worker-ui-notification-avatar alert">
+            <i class="fa-regular fa-bell"></i>
+          </span>
+          <div>
+            <p><strong>New Alert!</strong></p>
+            <p>The deadline for the waitress vacancy at Temple Bar is approaching.</p>
+            <a href={primaryActionHref} class="btn btn-primary">{primaryActionLabel}</a>
+          </div>
+          <small>14h</small>
+        </article>
+      </div>
+    </div>
+  </details>
+
+  <details class="worker-ui-profile-menu">
+    <summary aria-label="Open profile menu">
+      <span class="worker-ui-avatar">
+        <img src="/image_home_1.png" alt="User avatar" />
+      </span>
+      <i class="fa-solid fa-chevron-down"></i>
+    </summary>
+
+    <div class="worker-ui-profile-dropdown">
+      <div class="worker-ui-profile-head">
+        <span class="worker-ui-profile-photo">
+          <img src="/image_home_1.png" alt={menuUser} />
+        </span>
+        <div>
+          <strong>{menuUser}</strong>
+          <a href={profileHref}>{menuSubtitle}</a>
+        </div>
+      </div>
+
+      <nav aria-label="Profile menu">
+        <a href={dashboardHref} class:list={[active === "dashboard" && "active"]}>Dashboard</a>
+        <a href={profileHref} class:list={[active === "profile" && "active"]}>Profile</a>
+        <a href={applicationsHref} class:list={[active === "applications" && "active"]}>
+          {isBusiness ? "Applicants" : "Applications"}
+        </a>
+        <a href={shiftsHref} class:list={[active === "shifts" && "active"]}>Shifts</a>
+        <a href="#">Messages</a>
+        <form method="POST" action="/api/signout" class="worker-ui-menu-form">
+          <button type="submit">Log Out</button>
+        </form>
+      </nav>
+    </div>
+  </details>
+</div>

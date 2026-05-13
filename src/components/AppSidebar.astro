@@ -1,0 +1,88 @@
+---
+type AccountType = "worker" | "business";
+
+const { accountType = "worker", active = "dashboard" } = Astro.props as {
+  accountType?: AccountType;
+  active?: string;
+};
+
+const isBusiness = accountType === "business";
+
+const navItems = isBusiness
+  ? [
+      { href: "/business/dashboard", icon: "fa-solid fa-house", label: "Dashboard", key: "dashboard" },
+      { href: "/business/create-shift", icon: "fa-solid fa-circle-plus", label: "Create Shift", key: "create" },
+      { href: "/business/shifts", icon: "fa-regular fa-calendar", label: "Shifts", key: "shifts" },
+      { href: "/business/applications", icon: "fa-regular fa-file-lines", label: "Applicants", key: "applications" },
+      { href: "#", icon: "fa-regular fa-message", label: "Messages", key: "messages" },
+      { href: "#", icon: "fa-regular fa-circle-question", label: "Help", key: "help" },
+    ]
+  : [
+      { href: "/worker/dashboard", icon: "fa-solid fa-house", label: "Dashboard", key: "dashboard" },
+      { href: "/worker/profile", icon: "fa-regular fa-user", label: "Profile", key: "profile" },
+      { href: "#", icon: "fa-regular fa-envelope", label: "Messages", key: "messages" },
+      { href: "/worker/shifts", icon: "fa-regular fa-hourglass-half", label: "Shifts", key: "shifts" },
+      { href: "/worker/applications", icon: "fa-regular fa-file-lines", label: "Applications", key: "applications" },
+      { href: "#", icon: "fa-regular fa-credit-card", label: "Payments", key: "payments" },
+      { href: "#", icon: "fa-solid fa-phone", label: "Contact Us", key: "contact" },
+      { href: "#", icon: "fa-regular fa-circle-question", label: "Help", key: "help" },
+    ];
+
+const quickLinks = isBusiness
+  ? {
+      title: "Quick actions",
+      description: "Manage hiring faster.",
+      links: [
+        { href: "/business/create-shift", icon: "fa-solid fa-circle-plus", label: "Post a shift" },
+        { href: "/business/applications", icon: "fa-solid fa-user-check", label: "Review applicants" },
+        { href: "/business/shifts", icon: "fa-regular fa-calendar-check", label: "Manage shifts" },
+      ],
+    }
+  : {
+      title: "Quick actions",
+      description: "Keep your work moving.",
+      links: [
+        { href: "/worker/shifts", icon: "fa-regular fa-hourglass-half", label: "Find shifts" },
+        { href: "/worker/applications", icon: "fa-regular fa-file-lines", label: "Applications" },
+        { href: "/worker/profile", icon: "fa-regular fa-user", label: "Update profile" },
+      ],
+    };
+---
+
+<aside class="worker-ui-sidebar">
+  <div class="worker-ui-sidebar-top">
+    <a href="/" class="worker-ui-logo-box">
+      <img src="/GigToGo_logo.svg" alt="GigToGo" class="worker-ui-logo" />
+    </a>
+
+    <nav class="worker-ui-nav" aria-label={isBusiness ? "Business navigation" : "Worker navigation"}>
+      {navItems.map((item) => (
+        <a href={item.href} class:list={["worker-ui-nav-link", active === item.key && "active"]}>
+          <i class={item.icon}></i>
+          <span>{item.label}</span>
+        </a>
+      ))}
+    </nav>
+  </div>
+
+  <form method="POST" action="/api/signout" class="worker-ui-logout-form">
+    <button class="worker-ui-logout" type="submit">
+      Log out
+      <i class="fa-solid fa-arrow-right-from-bracket"></i>
+    </button>
+  </form>
+
+  <div class="worker-ui-side-card">
+    <h4>{quickLinks.title}</h4>
+    <p>{quickLinks.description}</p>
+
+    <div class="worker-ui-side-actions">
+      {quickLinks.links.map((link) => (
+        <a href={link.href}>
+          <i class={link.icon}></i>
+          <span>{link.label}</span>
+        </a>
+      ))}
+    </div>
+  </div>
+</aside>

@@ -1,13 +1,319 @@
 ---
-export async function getStaticPaths() {
-  return [
-    { params: { id: "1" } },
-    { params: { id: "2" } },
-    { params: { id: "3" } }
-  ];
-}
+import Layout from "../../../layouts/layout.astro";
+import AppSidebar from "../../../components/AppSidebar.astro";
+import WorkerTopActions from "../../../components/workerTopActions.astro";
+import { hasSupabaseConfig, supabaseFetch } from "../../../lib/supabaseServer";
 
-const { id } = Astro.params;
+export const prerender = false;
+
+const shiftDetails = [
+  {
+    id: "11111111-1111-4111-8111-111111111111",
+    title: "Barista",
+    company: "Insomnia Coffee",
+    type: "Part-time",
+    location: "Stoneybatter, Dublin",
+    address: "12 Manor Street, Dublin 7",
+    time: "Today · 2:00 PM - 8:00 PM",
+    pay: "€14.50/hr",
+    total: "€87.00 estimated",
+    distance: "1.8 km away",
+    tag: "Fast apply",
+    logo: "/insomnia_logo.webp",
+    image: "/image_home_1.png",
+    rating: "4.8",
+    completed: "126 shifts completed",
+    about:
+      "A busy local coffee shop looking for a friendly barista to support counter service, drinks, and light closing tasks.",
+    requirements: ["Barista experience", "Comfortable with POS", "Available this afternoon"],
+  },
+  {
+    id: "22222222-2222-4222-8222-222222222222",
+    title: "Event Security",
+    company: "Luna Events",
+    type: "Evening",
+    location: "Temple Bar, Dublin",
+    address: "Temple Bar, Dublin 2",
+    time: "Tomorrow · 6:00 PM - 12:00 AM",
+    pay: "€17.00/hr",
+    total: "€102.00 estimated",
+    distance: "3.2 km away",
+    tag: "Urgent",
+    logo: "/GigToGo_icon.png",
+    image: "/image_home_1.png",
+    rating: "4.6",
+    completed: "84 shifts completed",
+    about:
+      "Luna Events needs calm, reliable support for guest flow, queue management, and venue safety during an evening event.",
+    requirements: ["Event experience", "Confident communicator", "Evening availability"],
+  },
+  {
+    id: "33333333-3333-4333-8333-333333333333",
+    title: "Kitchen Porter",
+    company: "Travelodge",
+    type: "Full-time",
+    location: "Docklands, Dublin",
+    address: "North Wall Quay, Dublin 1",
+    time: "Fri · 7:00 AM - 3:00 PM",
+    pay: "€15.80/hr",
+    total: "€126.40 estimated",
+    distance: "4.1 km away",
+    tag: "New",
+    logo: "/travelodge_logo.png",
+    image: "/image_home_1.png",
+    rating: "4.7",
+    completed: "203 shifts completed",
+    about:
+      "Hotel kitchen team looking for help with dishwashing, prep areas, deliveries, and keeping service moving smoothly.",
+    requirements: ["Kitchen experience", "Manual handling helpful", "Morning availability"],
+  },
+  {
+    id: "44444444-4444-4444-8444-444444444444",
+    title: "Wait Staff",
+    company: "Butlers",
+    type: "Weekend",
+    location: "Grafton Street, Dublin",
+    address: "Grafton Street, Dublin 2",
+    time: "Sat · 12:00 PM - 6:00 PM",
+    pay: "€14.90/hr",
+    total: "€89.40 estimated",
+    distance: "2.6 km away",
+    tag: "Popular",
+    logo: "/butlers_logo.png",
+    image: "/image_home_1.png",
+    rating: "4.9",
+    completed: "171 shifts completed",
+    about:
+      "Weekend floor support for a high-footfall cafe. Help with table service, customer care, and resetting stations.",
+    requirements: ["Wait staff experience", "Customer-facing confidence", "Weekend availability"],
+  },
+  {
+    id: "55555555-5555-4555-8555-555555555555",
+    title: "Shift Supervisor",
+    company: "Starbucks",
+    type: "Morning",
+    location: "Ranelagh, Dublin",
+    address: "Ranelagh Road, Dublin 6",
+    time: "Sun · 8:00 AM - 2:00 PM",
+    pay: "€16.20/hr",
+    total: "€97.20 estimated",
+    distance: "5.4 km away",
+    tag: "Featured",
+    logo: "/starbucks_logo.png",
+    image: "/image_home_1.png",
+    rating: "4.8",
+    completed: "241 shifts completed",
+    about:
+      "Morning supervisor cover for opening flow, team support, customer service, and keeping the shift organised.",
+    requirements: ["Supervisor experience", "Coffee service knowledge", "Morning availability"],
+  },
+  {
+    id: "66666666-6666-4666-8666-666666666666",
+    title: "Front of House",
+    company: "Maldron Hotel",
+    type: "Flexible",
+    location: "Smithfield, Dublin",
+    address: "Smithfield, Dublin 7",
+    time: "Mon · 9:00 AM - 5:00 PM",
+    pay: "€15.40/hr",
+    total: "€123.20 estimated",
+    distance: "2.9 km away",
+    tag: "Verified",
+    logo: "/maldron_logopng.png",
+    image: "/image_home_1.png",
+    rating: "4.7",
+    completed: "188 shifts completed",
+    about:
+      "Front desk and guest support shift for check-ins, directions, luggage questions, and light admin support.",
+    requirements: ["Hotel or reception experience", "Clear communication", "Professional presentation"],
+  },
+];
+
+const token = Astro.cookies.get("gigtogo_access_token")?.value;
+const id = Astro.params.id ?? "";
+const notice = Astro.url.searchParams.get("notice");
+const error = Astro.url.searchParams.get("error");
+
+let shift = shiftDetails.find((item) => item.id === id) ?? shiftDetails[0];
+
+if (hasSupabaseConfig() && token && id) {
+  try {
+    const rows = await supabaseFetch(
+      `/rest/v1/shifts?id=eq.${id}&select=id,title,company,location,shift_date,start_time,end_time,pay_rate,shift_type,description,status&limit=1`,
+      { token }
+    );
+    const row = rows?.[0];
+
+    if (row) {
+      shift = {
+        id: row.id,
+        title: row.title,
+        company: row.company,
+        type: row.shift_type,
+        location: row.location,
+        address: row.location,
+        time: `${row.shift_date} · ${row.start_time.slice(0, 5)} - ${row.end_time.slice(0, 5)}`,
+        pay: `€${Number(row.pay_rate).toFixed(2)}/hr`,
+        total: "Estimated total shown after hours are confirmed",
+        distance: "Nearby",
+        tag: row.status === "open" ? "Open" : row.status,
+        logo: "/GigToGo_icon.png",
+        image: "/image_home_1.png",
+        rating: "New",
+        completed: "Posted on GigToGo",
+        about: row.description || "This business is looking for reliable shift support.",
+        requirements: ["Arrive on time", "Bring required documents", "Confirm availability before applying"],
+      };
+    }
+  } catch {
+    shift = shiftDetails.find((item) => item.id === id) ?? shiftDetails[0];
+  }
+}
 ---
 
-<h1>Shift ID: {id}</h1>
+<Layout title={`${shift.title} at ${shift.company} | GigToGo`}>
+  <main class="worker-ui">
+    <AppSidebar accountType="worker" active="shifts" />
+
+    <section class="worker-ui-main worker-shift-detail-page">
+      <header class="worker-ui-topbar">
+        <div class="worker-ui-search">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" placeholder="Search roles, companies or locations" />
+        </div>
+
+        <WorkerTopActions active="shifts" />
+      </header>
+
+      <div class="worker-ui-breadcrumb">
+        <a href="/worker/shifts">Available Shifts</a>
+        <span>/</span>
+        <strong>{shift.company}</strong>
+      </div>
+
+      {error && <p class="auth-alert error">{error}</p>}
+      {notice && <p class="auth-alert notice">{notice}</p>}
+
+      <section class="worker-shift-detail-hero">
+        <img src={shift.image} alt={`${shift.company} workplace`} />
+        <div class="worker-shift-detail-overlay"></div>
+        <div class="worker-shift-detail-identity">
+          <img src={shift.logo} alt="" />
+          <div>
+            <p>{shift.tag}</p>
+            <h1>{shift.title}</h1>
+            <span>{shift.company} · {shift.location}</span>
+          </div>
+          <a href="#apply" class="btn btn-primary">
+            Apply now
+            <i class="fa-solid fa-arrow-right"></i>
+          </a>
+        </div>
+      </section>
+
+      <section class="worker-shift-detail-stats" aria-label="Shift summary">
+        <article>
+          <i class="fa-regular fa-clock"></i>
+          <span>Shift time</span>
+          <strong>{shift.time}</strong>
+        </article>
+        <article>
+          <i class="fa-solid fa-wallet"></i>
+          <span>Pay</span>
+          <strong>{shift.pay}</strong>
+        </article>
+        <article>
+          <i class="fa-solid fa-location-dot"></i>
+          <span>Distance</span>
+          <strong>{shift.distance}</strong>
+        </article>
+        <article>
+          <i class="fa-solid fa-star"></i>
+          <span>Company rating</span>
+          <strong>{shift.rating}</strong>
+        </article>
+      </section>
+
+      <section class="worker-shift-detail-grid">
+        <article class="worker-profile-panel worker-shift-detail-main">
+          <div class="worker-profile-panel-head">
+            <div>
+              <p>Company and shift</p>
+              <h2>{shift.company}</h2>
+            </div>
+            <span>{shift.completed}</span>
+          </div>
+
+          <p class="worker-shift-detail-copy">{shift.about}</p>
+
+          <div class="worker-shift-detail-info">
+            <p>
+              <i class="fa-solid fa-briefcase"></i>
+              {shift.type} · {shift.title}
+            </p>
+            <p>
+              <i class="fa-solid fa-location-dot"></i>
+              {shift.address}
+            </p>
+            <p>
+              <i class="fa-solid fa-money-bill-wave"></i>
+              {shift.total}
+            </p>
+          </div>
+        </article>
+
+        <aside class="worker-profile-panel worker-shift-apply-card" id="apply">
+          <div class="worker-profile-panel-head">
+            <div>
+              <p>Application</p>
+              <h2>Ready to apply?</h2>
+            </div>
+          </div>
+
+          <strong>{shift.pay}</strong>
+          <span>{shift.total}</span>
+          <form method="POST" action="/api/shifts/apply" class="worker-shift-apply-form">
+            <input type="hidden" name="shift_id" value={shift.id} />
+            <input type="hidden" name="back_to" value={`/worker/shifts/${shift.id}`} />
+            <textarea name="note" placeholder="Add a short note for the business"></textarea>
+            <button type="submit" class="btn btn-primary">Apply for this shift</button>
+          </form>
+          <button type="button" class="btn btn-secondary">Save shift</button>
+        </aside>
+
+        <article class="worker-profile-panel">
+          <div class="worker-profile-panel-head">
+            <div>
+              <p>Before you apply</p>
+              <h2>Requirements</h2>
+            </div>
+          </div>
+
+          <div class="worker-shift-requirements">
+            {shift.requirements.map((item) => (
+              <p>
+                <i class="fa-solid fa-circle-check"></i>
+                {item}
+              </p>
+            ))}
+          </div>
+        </article>
+
+        <article class="worker-profile-panel worker-shift-map-card">
+          <div class="worker-profile-panel-head">
+            <div>
+              <p>Location</p>
+              <h2>{shift.location}</h2>
+            </div>
+            <span>{shift.distance}</span>
+          </div>
+
+          <div class="worker-shift-map">
+            <i class="fa-solid fa-location-dot"></i>
+            <span>{shift.address}</span>
+          </div>
+        </article>
+      </section>
+    </section>
+  </main>
+</Layout>

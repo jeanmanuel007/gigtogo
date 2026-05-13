@@ -1,0 +1,74 @@
+---
+import Layout from "../../layouts/layout.astro";
+
+const error = Astro.url.searchParams.get("error");
+const notice = Astro.url.searchParams.get("notice");
+---
+
+<Layout title="Sign In | GigToGo">
+  <main class="auth-page">
+    <section class="auth-shell">
+            <a href="/" class="auth-home-logo">
+            <img src="/GigToGo_logo.svg" alt="GigToGo" class="auth-logo-img" />
+            </a>
+      <div class="auth-panel auth-form-panel">
+        <div class="auth-form-inner">
+          <div class="auth-toggle">
+            <a href="/auth/signin" class="auth-toggle-btn active">Login</a>
+            <a href="/auth/register" class="auth-toggle-btn">Register</a>
+          </div>
+
+          <p class="auth-helper">
+            Sign in to access your GigToGo account.
+          </p>
+
+          {error && <p class="auth-alert error">{error}</p>}
+          {notice && <p class="auth-alert notice">{notice}</p>}
+
+          <form class="auth-form" method="POST" action="/api/signin">
+            <label class="auth-label" for="email">Email Address</label>
+            <input
+              class="auth-input"
+              id="email"
+              name="email"
+              type="email"
+              placeholder="Enter your email address"
+              required
+            />
+
+            <label class="auth-label" for="password">Password</label>
+            <input
+              class="auth-input"
+              id="password"
+              name="password"
+              type="password"
+              placeholder="Enter your password"
+              required
+            />
+
+            <div class="auth-options">
+              <label class="auth-checkbox">
+                <input type="checkbox" name="remember" />
+                <span>Remember me</span>
+              </label>
+
+              <a href="#" class="auth-link">Forgot Password?</a>
+            </div>
+
+            <button class="btn auth-submit" type="submit">Login</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="auth-panel auth-brand-panel">
+        <div class="auth-brand-content">
+          <h1>Welcome to</h1>
+          <div class="auth-brand-logo">
+            <img src="/GigToGo_logo.svg" alt="GigToGo" />
+          </div>
+        </div>
+        <div class="auth-brand-shape"></div>
+      </div>
+    </section>
+  </main>
+</Layout>

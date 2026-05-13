@@ -1,0 +1,112 @@
+---
+import Layout from "../../layouts/layout.astro";
+import AppSidebar from "../../components/AppSidebar.astro";
+import WorkerTopActions from "../../components/workerTopActions.astro";
+import { hasSupabaseConfig, supabaseFetch } from "../../lib/supabaseServer";
+
+export const prerender = false;
+
+const token = Astro.cookies.get("gigtogo_access_token")?.value;
+const userId = Astro.cookies.get("gigtogo_user_id")?.value;
+const notice = Astro.url.searchParams.get("notice");
+const error = Astro.url.searchParams.get("error");
+
+let shifts = [
+  {
+    id: "demo",
+    title: "Barista",
+    company: "Liberties Coffee",
+    location: "Smithfield, Dublin",
+    time: "Today · 2:00 PM - 8:00 PM",
+    pay: "€14.50/hr",
+    status: "open",
+  },
+];
+
+if (hasSupabaseConfig() && token && userId) {
+  try {
+    const rows = await supabaseFetch(
+      `/rest/v1/shifts?business_id=eq.${userId}&select=id,title,company,location,shift_date,start_time,end_time,pay_rate,status&order=created_at.desc`,
+      { token }
+    );
+
+    shifts = rows.map((shift: any) => ({
+      id: shift.id,
+      title: shift.title,
+      company: shift.company,
+      location: shift.location,
+      time: `${shift.shift_date} · ${shift.start_time.slice(0, 5)} - ${shift.end_time.slice(0, 5)}`,
+      pay: `€${Number(shift.pay_rate).toFixed(2)}/hr`,
+      status: shift.status,
+    }));
+  } catch {
+    // Keep fallback content visible while Supabase is being configured.
+  }
+}
+---
+
+<Layout title="Your Shifts | GigToGo">
+  <main class="worker-ui">
+    <AppSidebar accountType="business" active="shifts" />
+
+    <section class="worker-ui-main">
+      <header class="worker-ui-topbar">
+        <div>
+          <p class="business-page-kicker">Business tools</p>
+          <h1 class="business-page-title">Your posted shifts</h1>
+        </div>
+        <WorkerTopActions active="shifts" accountType="business" />
+      </header>
+
+      {error && <p class="auth-alert error">{error}</p>}
+      {notice && <p class="auth-alert notice">{notice}</p>}
+
+      <div class="business-section-head">
+        <div>
+          <h2>Live shift board</h2>
+          <p>Review posted shifts and applicant activity.</p>
+        </div>
+        <a href="/business/create-shift" class="btn btn-primary">Post another shift</a>
+      </div>
+
+      <section class="worker-ui-card-grid">
+        {shifts.map((shift) => (
+          <article class="worker-shift-card">
+            <div class="worker-shift-card-body">
+              <div class="worker-shift-company">
+                <img src="/GigToGo_icon.png" alt="" />
+                <div>
+                  <small>{shift.company}</small>
+                  <h3>{shift.title}</h3>
+                </div>
+              </div>
+
+              <div class="worker-shift-meta">
+                <p>
+                  <i class="fa-solid fa-location-dot"></i>
+                  {shift.location}
+                </p>
+                <p>
+                  <i class="fa-regular fa-clock"></i>
+                  {shift.time}
+                </p>
+              </div>
+
+              <div class="worker-shift-card-footer">
+                <div>
+                  <strong>{shift.pay}</strong>
+                  <span>Status: {shift.status}</span>
+                </div>
+              </div>
+
+              <div class="worker-shift-actions">
+                <a href="/business/applications" class="btn btn-secondary">Applicants</a>
+                <a href="/business/create-shift" class="btn btn-primary">Post shift</a>
+              </div>
+            </div>
+          </article>
+        ))}
+      </section>
+    </section>
+  </main>
+</Layout>

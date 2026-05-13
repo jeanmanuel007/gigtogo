@@ -1,0 +1,95 @@
+---
+import Layout from "../../layouts/layout.astro";
+import AppSidebar from "../../components/AppSidebar.astro";
+import WorkerTopActions from "../../components/workerTopActions.astro";
+
+const error = Astro.url.searchParams.get("error");
+const notice = Astro.url.searchParams.get("notice");
+---
+
+<Layout title="Create Shift | GigToGo">
+  <main class="worker-ui">
+    <AppSidebar accountType="business" active="create" />
+
+    <section class="worker-ui-main">
+      <header class="worker-ui-topbar">
+        <div>
+          <p class="business-page-kicker">Business tools</p>
+          <h1 class="business-page-title">Post a new shift</h1>
+        </div>
+        <WorkerTopActions active="shifts" accountType="business" />
+      </header>
+
+      {error && <p class="auth-alert error">{error}</p>}
+      {notice && <p class="auth-alert notice">{notice}</p>}
+
+      <section class="business-create-panel">
+        <form method="POST" action="/api/shifts/create" class="business-shift-form">
+          <div class="business-form-grid">
+            <label>
+              <span>Role title</span>
+              <input name="title" type="text" placeholder="Barista, Wait Staff, Kitchen Porter" required />
+            </label>
+
+            <label>
+              <span>Company</span>
+              <input name="company" type="text" placeholder="Your business name" required />
+            </label>
+
+            <label>
+              <span>Location</span>
+              <input name="location" type="text" placeholder="Dublin city centre" required />
+            </label>
+
+            <label>
+              <span>Shift type</span>
+              <select name="shift_type" required>
+                <option value="Flexible">Flexible</option>
+                <option value="Part-time">Part-time</option>
+                <option value="Full-time">Full-time</option>
+                <option value="Weekend">Weekend</option>
+                <option value="Evening">Evening</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Date</span>
+              <input name="shift_date" type="date" required />
+            </label>
+
+            <label>
+              <span>Start time</span>
+              <input name="start_time" type="time" required />
+            </label>
+
+            <label>
+              <span>End time</span>
+              <input name="end_time" type="time" required />
+            </label>
+
+            <label>
+              <span>Hourly pay</span>
+              <input name="pay_rate" type="number" min="0" step="0.01" placeholder="15.50" required />
+            </label>
+          </div>
+
+          <label class="business-form-full">
+            <span>Description</span>
+            <textarea
+              name="description"
+              placeholder="Describe the shift, responsibilities, clothing requirements, and anything the worker should know."
+            ></textarea>
+          </label>
+
+          <div class="business-form-actions">
+            <a href="/business/shifts" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary">
+              Post shift
+              <i class="fa-solid fa-arrow-right"></i>
+            </button>
+          </div>
+        </form>
+      </section>
+    </section>
+  </main>
+</Layout>

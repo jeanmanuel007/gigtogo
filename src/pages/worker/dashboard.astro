@@ -1,0 +1,307 @@
+---
+import Layout from "../../layouts/layout.astro";
+import AppSidebar from "../../components/AppSidebar.astro";
+import WorkerTopActions from "../../components/workerTopActions.astro";
+
+const availableShifts = [
+  {
+    role: "Barista",
+    company: "Insomnia Coffee",
+    location: "Talbot Street",
+    pay: "€14.50/hr",
+    time: "Today · 2:00 PM - 8:00 PM",
+    logo: "/insomnia_logo.webp",
+  },
+  {
+    role: "Wait Staff",
+    company: "Butlers",
+    location: "Grafton Street",
+    pay: "€14.90/hr",
+    time: "Sat · 12:00 PM - 6:00 PM",
+    logo: "/butlers_logo.png",
+  },
+  {
+    role: "Front of House",
+    company: "Maldron Hotel",
+    location: "Smithfield",
+    pay: "€15.40/hr",
+    time: "Mon · 9:00 AM - 5:00 PM",
+    logo: "/maldron_logopng.png",
+  },
+];
+
+const nextShifts = [
+  {
+    role: "Waitress",
+    company: "Insomnia Coffee",
+    date: "Today",
+    time: "14:00 - 22:00",
+  },
+  {
+    role: "Event Staff",
+    company: "Luna Events",
+    date: "Tomorrow",
+    time: "18:00 - 00:00",
+  },
+];
+
+const completed = [
+  {
+    company: "Travelodge",
+    role: "Kitchen Porter",
+    hours: "8 hours completed",
+    status: "Payment pending",
+    logo: "/travelodge_logo.png",
+  },
+  {
+    company: "Starbucks",
+    role: "Shift Supervisor",
+    hours: "6 hours completed",
+    status: "Paid",
+    logo: "/starbucks_logo.png",
+  },
+];
+---
+
+<Layout title="Worker Dashboard | GigToGo">
+  <main class="worker-ui">
+    <AppSidebar accountType="worker" active="dashboard" />
+
+    <section class="worker-ui-main worker-dashboard-page">
+      <header class="worker-ui-topbar">
+        <div class="worker-ui-search">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" placeholder="Search shifts, companies or messages" />
+        </div>
+
+        <WorkerTopActions active="dashboard" />
+      </header>
+
+      <div class="worker-ui-breadcrumb">
+        <span>Worker</span>
+        <span>/</span>
+        <strong>Dashboard</strong>
+      </div>
+
+      <section class="worker-dashboard-hero">
+        <img src="/image_home_1.png" alt="GigToGo worker dashboard" />
+        <div class="worker-dashboard-hero-overlay"></div>
+        <div>
+          <p>Welcome back</p>
+          <h1>Mary O'Connor</h1>
+          <span>Your next shift starts today at 14:00.</span>
+        </div>
+      </section>
+
+      <section class="worker-dashboard-stats" aria-label="Worker dashboard summary">
+        <article>
+          <i class="fa-solid fa-briefcase"></i>
+          <strong>36</strong>
+          <span>Jobs done</span>
+        </article>
+        <article>
+          <i class="fa-regular fa-file-lines"></i>
+          <strong>12</strong>
+          <span>Applications</span>
+        </article>
+        <article>
+          <i class="fa-regular fa-calendar-check"></i>
+          <strong>2</strong>
+          <span>Next shifts</span>
+        </article>
+        <article>
+          <i class="fa-solid fa-wallet"></i>
+          <strong>€428</strong>
+          <span>To receive</span>
+        </article>
+      </section>
+
+      <section class="worker-dashboard-grid">
+        <article class="worker-profile-panel worker-dashboard-clock">
+          <div class="worker-profile-panel-head">
+            <div>
+              <p>Clock in</p>
+              <h2>Current shift</h2>
+            </div>
+            <span>Today</span>
+          </div>
+
+          <article class="worker-profile-panel worker-shift-timer" data-shift-timer>
+            <div class="worker-shift-timer-head">
+              <p>Your shift today</p>
+              <span data-shift-status>Ready to clock in</span>
+            </div>
+
+            <div class="worker-shift-timer-body">
+              <strong data-shift-clock>14:00-22:00</strong>
+              <span>Waitress</span>
+              <small>Insomnia Coffee · Temple Bar</small>
+            </div>
+
+            <div class="worker-shift-timer-actions">
+              <button type="button" class="worker-shift-timer-icon" data-shift-reset aria-label="Reset timer">
+                <i class="fa-solid fa-rotate-left"></i>
+              </button>
+
+              <button type="button" class="worker-shift-timer-toggle" data-shift-toggle>
+                <i class="fa-solid fa-stopwatch"></i>
+                <span>Start</span>
+              </button>
+
+              <button type="button" class="worker-shift-timer-icon" aria-label="Shift timer settings">
+                <i class="fa-solid fa-gear"></i>
+              </button>
+            </div>
+          </article>
+        </article>
+
+        <article class="worker-profile-panel worker-dashboard-available">
+          <div class="worker-profile-panel-head">
+            <div>
+              <p>Available nearby</p>
+              <h2>Recommended shifts</h2>
+            </div>
+            <a href="/worker/shifts">See all</a>
+          </div>
+
+          <div class="worker-dashboard-shift-cards">
+            {availableShifts.map((shift) => (
+              <a href="/worker/shifts" class="worker-dashboard-shift-card">
+                <img src={shift.logo} alt="" />
+                <div>
+                  <strong>{shift.role}</strong>
+                  <span>{shift.company}</span>
+                  <small>{shift.location} · {shift.time}</small>
+                </div>
+                <em>{shift.pay}</em>
+              </a>
+            ))}
+          </div>
+        </article>
+
+        <article class="worker-profile-panel">
+          <div class="worker-profile-panel-head">
+            <div>
+              <p>Schedule</p>
+              <h2>Next shifts</h2>
+            </div>
+            <a href="/worker/profile">Manage</a>
+          </div>
+
+          <div class="worker-dashboard-next-list">
+            {nextShifts.map((shift) => (
+              <div>
+                <span>{shift.date}</span>
+                <div>
+                  <strong>{shift.role}</strong>
+                  <small>{shift.company}</small>
+                </div>
+                <em>{shift.time}</em>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article class="worker-profile-panel worker-dashboard-completed">
+          <div class="worker-profile-panel-head">
+            <div>
+              <p>Recently completed</p>
+              <h2>Finished work</h2>
+            </div>
+            <span>2 pending</span>
+          </div>
+
+          <div class="worker-dashboard-completed-grid">
+            {completed.map((job) => (
+              <article>
+                <img src={job.logo} alt="" />
+                <strong>{job.company}</strong>
+                <span>{job.role} · {job.hours}</span>
+                <small>{job.status}</small>
+              </article>
+            ))}
+          </div>
+        </article>
+
+        <article class="worker-profile-panel">
+          <div class="worker-profile-panel-head">
+            <div>
+              <p>Reviews</p>
+              <h2>Recent feedback</h2>
+            </div>
+            <span>4.9 rating</span>
+          </div>
+
+          <div class="worker-dashboard-review">
+            <strong>The Ivy Dublin</strong>
+            <p>Mary was calm, efficient and lovely with guests during a busy dinner service.</p>
+            <span>
+              <i class="fa-solid fa-star"></i>
+              5.0
+            </span>
+          </div>
+        </article>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    document.querySelectorAll("[data-shift-timer]").forEach((timer) => {
+      const clock = timer.querySelector("[data-shift-clock]");
+      const status = timer.querySelector("[data-shift-status]");
+      const toggle = timer.querySelector("[data-shift-toggle]");
+      const toggleLabel = toggle?.querySelector("span");
+      const reset = timer.querySelector("[data-shift-reset]");
+      let elapsed = 0;
+      let intervalId;
+
+      const formatElapsed = (totalSeconds) => {
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+
+        if (hours > 0) {
+          return `${hours}h:${String(minutes).padStart(2, "0")}m:${String(seconds).padStart(2, "0")}s`;
+        }
+
+        return `${minutes}m:${String(seconds).padStart(2, "0")}s`;
+      };
+
+      const render = () => {
+        if (!clock) return;
+        clock.textContent = elapsed > 0 ? formatElapsed(elapsed) : "14:00-22:00";
+      };
+
+      const stopTimer = () => {
+        window.clearInterval(intervalId);
+        intervalId = undefined;
+        timer.classList.remove("is-active");
+        if (status) status.textContent = elapsed > 0 ? "Paused" : "Ready to clock in";
+        if (toggleLabel) toggleLabel.textContent = elapsed > 0 ? "Resume" : "Start";
+      };
+
+      toggle?.addEventListener("click", () => {
+        if (intervalId) {
+          stopTimer();
+          return;
+        }
+
+        timer.classList.add("is-active");
+        if (status) status.textContent = "Clocked in";
+        if (toggleLabel) toggleLabel.textContent = "Stop";
+        elapsed += 1;
+        render();
+        intervalId = window.setInterval(() => {
+          elapsed += 1;
+          render();
+        }, 1000);
+      });
+
+      reset?.addEventListener("click", () => {
+        elapsed = 0;
+        stopTimer();
+        render();
+      });
+    });
+  </script>
+</Layout>

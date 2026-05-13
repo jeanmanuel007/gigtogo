@@ -1,0 +1,324 @@
+---
+import Layout from "../../layouts/layout.astro";
+import AppSidebar from "../../components/AppSidebar.astro";
+import WorkerTopActions from "../../components/workerTopActions.astro";
+
+const stats = [
+  {
+    label: "Jobs done",
+    value: "36",
+    detail: "4.9 average rating",
+    icon: "fa-solid fa-briefcase",
+  },
+  {
+    label: "Applied",
+    value: "12",
+    detail: "5 awaiting replies",
+    icon: "fa-regular fa-file-lines",
+  },
+  {
+    label: "Upcoming shifts",
+    value: "4",
+    detail: "Next shift tomorrow",
+    icon: "fa-regular fa-calendar-check",
+  },
+  {
+    label: "Payment to receive",
+    value: "€428",
+    detail: "Expected this week",
+    icon: "fa-solid fa-wallet",
+  },
+];
+
+const upcomingShifts = [
+  {
+    role: "Barista",
+    company: "Insomnia Coffee",
+    time: "Tomorrow · 8:00 AM - 2:00 PM",
+    pay: "€87.00",
+  },
+  {
+    role: "Wait Staff",
+    company: "Butlers",
+    time: "Sat · 12:00 PM - 6:00 PM",
+    pay: "€89.40",
+  },
+  {
+    role: "Front of House",
+    company: "Maldron Hotel",
+    time: "Mon · 9:00 AM - 5:00 PM",
+    pay: "€123.20",
+  },
+];
+
+const jobsDone = [
+  "Kitchen Porter · Travelodge",
+  "Event Security · Luna Events",
+  "Shift Supervisor · Starbucks",
+];
+
+const skills = ["Hospitality", "POS systems", "Food safety", "Customer care", "Event support"];
+---
+
+<Layout title="Worker Profile | GigToGo">
+  <main class="worker-ui">
+    <AppSidebar accountType="worker" active="profile" />
+
+    <section class="worker-ui-main worker-profile-page">
+      <header class="worker-ui-topbar">
+        <div class="worker-ui-search">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" placeholder="Search shifts, payments or applications" />
+        </div>
+
+        <WorkerTopActions active="profile" />
+      </header>
+
+      <div class="worker-ui-breadcrumb">
+        <span>Dashboard</span>
+        <span>/</span>
+        <strong>Profile</strong>
+      </div>
+
+      <section class="worker-profile-hero">
+        <img src="/image_home_1.png" alt="Profile cover" />
+        <div class="worker-profile-hero-overlay"></div>
+
+        <div class="worker-profile-identity">
+          <span class="worker-profile-avatar-large">
+            <img src="/image_home_1.png" alt="Mary O'Connor" />
+          </span>
+          <div>
+            <p>Available this week</p>
+            <h1>Mary O'Connor</h1>
+            <span>Hospitality worker · Dublin, Ireland</span>
+          </div>
+          <a href="#" class="btn btn-primary">
+            Edit profile
+            <i class="fa-regular fa-pen-to-square"></i>
+          </a>
+        </div>
+      </section>
+
+      <section class="worker-profile-stats" aria-label="Worker profile summary">
+        {stats.map((item) => (
+          <article>
+            <i class={item.icon}></i>
+            <div>
+              <span>{item.label}</span>
+              <strong>{item.value}</strong>
+              <small>{item.detail}</small>
+            </div>
+          </article>
+        ))}
+      </section>
+
+      <section class="worker-profile-grid">
+        <article class="worker-profile-panel worker-profile-about">
+          <div class="worker-profile-panel-head">
+            <div>
+              <p>General information</p>
+              <h2>Profile overview</h2>
+            </div>
+            <span>92% complete</span>
+          </div>
+
+          <p class="worker-profile-bio">
+            Reliable hospitality worker with strong customer service experience across coffee,
+            hotels and events. Open to morning, weekend and short-notice shifts around Dublin.
+          </p>
+
+          <div class="worker-profile-info-list">
+            <p>
+              <i class="fa-solid fa-location-dot"></i>
+              Dublin 7 · willing to travel 8 km
+            </p>
+            <p>
+              <i class="fa-regular fa-envelope"></i>
+              mary.oconnor@gigtogo.com
+            </p>
+            <p>
+              <i class="fa-solid fa-graduation-cap"></i>
+              Food safety certified · Manual handling complete
+            </p>
+          </div>
+
+          <div class="worker-profile-skill-list" aria-label="Worker skills">
+            {skills.map((skill) => <span>{skill}</span>)}
+          </div>
+        </article>
+
+        <article class="worker-profile-panel worker-profile-payment">
+          <div class="worker-profile-panel-head">
+            <div>
+              <p>Payments</p>
+              <h2>To receive</h2>
+            </div>
+            <span>3 shifts</span>
+          </div>
+
+          <strong>€428.00</strong>
+          <small>Next payout estimated Friday</small>
+          <div class="worker-profile-payment-bar">
+            <span></span>
+          </div>
+          <a href="#" class="btn btn-secondary">View payments</a>
+        </article>
+
+        <article class="worker-profile-panel worker-shift-timer" data-shift-timer>
+          <div class="worker-shift-timer-head">
+            <p>Your shift today</p>
+            <span data-shift-status>Ready to clock in</span>
+          </div>
+
+          <div class="worker-shift-timer-body">
+            <strong data-shift-clock>14:00-22:00</strong>
+            <span>Waitress</span>
+            <small>Insomnia Coffee · Temple Bar</small>
+          </div>
+
+          <div class="worker-shift-timer-actions">
+            <button type="button" class="worker-shift-timer-icon" data-shift-reset aria-label="Reset timer">
+              <i class="fa-solid fa-rotate-left"></i>
+            </button>
+
+            <button type="button" class="worker-shift-timer-toggle" data-shift-toggle>
+              <i class="fa-solid fa-stopwatch"></i>
+              <span>Start</span>
+            </button>
+
+            <button type="button" class="worker-shift-timer-icon" aria-label="Shift timer settings">
+              <i class="fa-solid fa-gear"></i>
+            </button>
+          </div>
+        </article>
+
+        <article class="worker-profile-panel worker-profile-upcoming">
+          <div class="worker-profile-panel-head">
+            <div>
+              <p>Schedule</p>
+              <h2>Upcoming shifts</h2>
+            </div>
+            <a href="/worker/shifts">Browse</a>
+          </div>
+
+          <div class="worker-profile-shift-list">
+            {upcomingShifts.map((shift) => (
+              <div>
+                <span>
+                  <strong>{shift.role}</strong>
+                  <small>{shift.company}</small>
+                </span>
+                <span>
+                  <small>{shift.time}</small>
+                  <strong>{shift.pay}</strong>
+                </span>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article class="worker-profile-panel worker-profile-activity">
+          <div class="worker-profile-panel-head">
+            <div>
+              <p>Activity</p>
+              <h2>Recently completed</h2>
+            </div>
+            <span>36 total</span>
+          </div>
+
+          <div class="worker-profile-done-list">
+            {jobsDone.map((job) => (
+              <p>
+                <i class="fa-solid fa-circle-check"></i>
+                {job}
+              </p>
+            ))}
+          </div>
+        </article>
+
+        <article class="worker-profile-panel worker-profile-availability">
+          <div class="worker-profile-panel-head">
+            <div>
+              <p>Preferences</p>
+              <h2>Availability</h2>
+            </div>
+            <span>Updated today</span>
+          </div>
+
+          <div class="worker-profile-days" aria-label="Availability by day">
+            <span>Mon</span>
+            <span class="active">Tue</span>
+            <span class="active">Wed</span>
+            <span>Thu</span>
+            <span class="active">Fri</span>
+            <span class="active">Sat</span>
+            <span>Sun</span>
+          </div>
+        </article>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const timer = document.querySelector("[data-shift-timer]");
+
+    if (timer) {
+      const clock = timer.querySelector("[data-shift-clock]");
+      const status = timer.querySelector("[data-shift-status]");
+      const toggle = timer.querySelector("[data-shift-toggle]");
+      const toggleLabel = toggle?.querySelector("span");
+      const reset = timer.querySelector("[data-shift-reset]");
+      let elapsed = 0;
+      let intervalId;
+
+      const formatElapsed = (totalSeconds) => {
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+
+        if (hours > 0) {
+          return `${hours}h:${String(minutes).padStart(2, "0")}m:${String(seconds).padStart(2, "0")}s`;
+        }
+
+        return `${minutes}m:${String(seconds).padStart(2, "0")}s`;
+      };
+
+      const render = () => {
+        if (!clock) return;
+        clock.textContent = elapsed > 0 ? formatElapsed(elapsed) : "14:00-22:00";
+      };
+
+      const stopTimer = () => {
+        window.clearInterval(intervalId);
+        intervalId = undefined;
+        timer.classList.remove("is-active");
+        if (status) status.textContent = elapsed > 0 ? "Paused" : "Ready to clock in";
+        if (toggleLabel) toggleLabel.textContent = elapsed > 0 ? "Resume" : "Start";
+      };
+
+      toggle?.addEventListener("click", () => {
+        if (intervalId) {
+          stopTimer();
+          return;
+        }
+
+        timer.classList.add("is-active");
+        if (status) status.textContent = "Clocked in";
+        if (toggleLabel) toggleLabel.textContent = "Stop";
+        elapsed += 1;
+        render();
+        intervalId = window.setInterval(() => {
+          elapsed += 1;
+          render();
+        }, 1000);
+      });
+
+      reset?.addEventListener("click", () => {
+        elapsed = 0;
+        stopTimer();
+        render();
+      });
+    }
+  </script>
+</Layout>
