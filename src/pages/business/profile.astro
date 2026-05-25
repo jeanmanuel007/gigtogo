@@ -1,0 +1,284 @@
+---
+import Layout from "../../layouts/layout.astro";
+import AppSidebar from "../../components/AppSidebar.astro";
+import WorkerTopActions from "../../components/workerTopActions.astro";
+import { hasSupabaseConfig, supabaseFetch } from "../../lib/supabaseServer";
+
+export const prerender = false;
+
+const token = Astro.cookies.get("gigtogo_access_token")?.value;
+const userId = Astro.cookies.get("gigtogo_user_id")?.value;
+const emailCookie = Astro.cookies.get("gigtogo_user_email")?.value ?? "business@gigtogo.com";
+const error = Astro.url.searchParams.get("error");
+const notice = Astro.url.searchParams.get("notice");
+
+let profile = {
+  fullName: "Business Account",
+  email: emailCookie,
+  role: "business",
+  phone: "",
+  location: "Dublin, Ireland",
+  headline: "Hospitality business",
+  bio: "",
+};
+
+let stats = {
+  shifts: 0,
+  applicants: 0,
+  accepted: 0,
+  open: 0,
+};
+
+let recentShifts: Array<{
+  id: string;
+  title: string;
+  company: string;
+  location: string;
+  time: string;
+  pay: string;
+  status: string;
+}> = [];
+
+if (hasSupabaseConfig() && !token) {
+  return Astro.redirect("/auth/signin?error=Please sign in to view your business profile.");
+}
+
+if (hasSupabaseConfig() && token && userId) {
+  try {
+    const profileRows = await supabaseFetch(
+      `/rest/v1/profiles?id=eq.${userId}&select=full_name,email,role,phone,location,headline,bio&limit=1`,
+      { token }
+    );
+    const profileRow = profileRows?.[0];
+
+    if (profileRow) {
+      profile = {
+        fullName: profileRow.full_name,
+        email: profileRow.email,
+        role: profileRow.role,
+        phone: profileRow.phone ?? "",
+        location: profileRow.location ?? "Dublin, Ireland",
+        headline: profileRow.headline ?? "Hospitality business",
+        bio: profileRow.bio ?? "",
+      };
+    }
+
+    const shiftRows = await supabaseFetch(
+      `/rest/v1/shifts?business_id=eq.${userId}&select=id,title,company,location,shift_date,start_time,end_time,pay_rate,status&order=created_at.desc`,
+      { token }
+    );
+
+    recentShifts = shiftRows.slice(0, 4).map((shift: any) => ({
+      id: shift.id,
+      title: shift.title,
+      company: profile.fullName,
+      location: shift.location,
+      time: `${shift.shift_date} · ${shift.start_time.slice(0, 5)} - ${shift.end_time.slice(0, 5)}`,
+      pay: `€${Number(shift.pay_rate).toFixed(2)}/hr`,
+      status: shift.status,
+    }));
+
+    const applicationRows = await supabaseFetch(
+      `/rest/v1/shift_applications?select=id,status,shifts!inner(business_id)&shifts.business_id=eq.${userId}`,
+      { token }
+    );
+
+    stats = {
+      shifts: shiftRows.length,
+      applicants: applicationRows.length,
+      accepted: applicationRows.filter((row: any) => row.status === "accepted").length,
+      open: shiftRows.filter((row: any) => row.status === "open").length,
+    };
+  } catch {
+    recentShifts = [];
+  }
+}
+---
+
+<Layout title="Business Profile | GigToGo">
+  <main class="worker-ui">
+    <AppSidebar accountType="business" active="profile" />
+
+    <section class="worker-ui-main worker-profile-page">
+      <header class="worker-ui-topbar">
+        <div>
+          <p class="business-page-kicker">Business tools</p>
+          <h1 class="business-page-title">Business profile</h1>
+        </div>
+        <WorkerTopActions active="profile" accountType="business" />
+      </header>
+
+      {error && <p class="auth-alert error">{error}</p>}
+      {notice && <p class="auth-alert notice">{notice}</p>}
+
+      <section class="worker-profile-hero">
+        <img src="/insomnia2.jpg" alt="Business profile cover" />
+        <div class="worker-profile-hero-overlay"></div>
+
+        <div class="worker-profile-identity">
+          <span class="worker-profile-avatar-large">
+            <img src="/insomnia.jpg" alt={profile.fullName} />
+          </span>
+          <div>
+            <p>{profile.headline || "Business account"}</p>
+            <h1>{profile.fullName}</h1>
+            <span>{profile.location} · {profile.email}</span>
+          </div>
+          <a href="#edit-profile" class="btn btn-primary">
+            Edit profile
+            <i class="fa-regular fa-pen-to-square"></i>
+          </a>
+        </div>
+      </section>
+
+      <section class="worker-profile-stats" aria-label="Business profile summary">
+        <article>
+          <i class="fa-regular fa-calendar"></i>
+          <div>
+            <span>Posted shifts</span>
+            <strong>{stats.shifts}</strong>
+            <small>{stats.open} currently open</small>
+          </div>
+        </article>
+        <article>
+          <i class="fa-regular fa-file-lines"></i>
+          <div>
+            <span>Applicants</span>
+            <strong>{stats.applicants}</strong>
+            <small>Across your shifts</small>
+          </div>
+        </article>
+        <article>
+          <i class="fa-solid fa-user-check"></i>
+          <div>
+            <span>Accepted</span>
+            <strong>{stats.accepted}</strong>
+            <small>Confirmed workers</small>
+          </div>
+        </article>
+        <article class="worker-profile-stat-action">
+          <i class="fa-solid fa-list-check"></i>
+          <div>
+            <span>Next action</span>
+            <strong>{stats.applicants}</strong>
+            <small>applications to review</small>
+            <a href="/business/applications">Review applicants</a>
+          </div>
+        </article>
+      </section>
+
+      <section class="worker-profile-grid">
+        <article class="worker-profile-panel worker-profile-about">
+          <div class="worker-profile-panel-head">
+            <div>
+              <p>Account details</p>
+              <h2>{profile.fullName}</h2>
+            </div>
+            <span>Live</span>
+          </div>
+
+          <div class="worker-profile-info-list">
+            <p>
+              <i class="fa-regular fa-envelope"></i>
+              {profile.email}
+            </p>
+            <p>
+              <i class="fa-solid fa-phone"></i>
+              {profile.phone || "Phone not added"}
+            </p>
+            <p>
+              <i class="fa-solid fa-location-dot"></i>
+              {profile.location || "Location not added"}
+            </p>
+          </div>
+
+          <p class="worker-profile-bio">
+            {profile.bio || "Add a short business description so workers know who they are applying to."}
+          </p>
+        </article>
+
+        <article class="worker-profile-panel worker-profile-upcoming">
+          <div class="worker-profile-panel-head">
+            <div>
+              <p>Recently posted</p>
+              <h2>Your shifts</h2>
+            </div>
+            <a href="/business/shifts">See all</a>
+          </div>
+
+          {recentShifts.length === 0 ? (
+            <p class="worker-profile-bio">Post your first shift to start receiving applications.</p>
+          ) : (
+            <div class="worker-profile-shift-list">
+              {recentShifts.map((shift) => (
+                <div>
+                  <span>
+                    <strong>{shift.title}</strong>
+                    <small>{shift.company} · {shift.location}</small>
+                  </span>
+                  <span>
+                    <small>{shift.time}</small>
+                    <strong>{shift.pay}</strong>
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </article>
+
+        <article class="worker-profile-panel worker-profile-edit-panel" id="edit-profile">
+          <div class="worker-profile-panel-head">
+            <div>
+              <p>Edit</p>
+              <h2>Business details</h2>
+            </div>
+            <span>Saved to Supabase</span>
+          </div>
+
+          <form method="POST" action="/api/profile/update" class="worker-profile-edit-form">
+            <input type="hidden" name="back_to" value="/business/profile" />
+            <div class="business-form-grid">
+              <label>
+                <span>Business name</span>
+                <input name="full_name" type="text" value={profile.fullName} required />
+              </label>
+
+              <label>
+                <span>Email</span>
+                <input type="email" value={profile.email} readonly />
+              </label>
+
+              <label>
+                <span>Phone</span>
+                <input name="phone" type="tel" value={profile.phone} placeholder="+353 89 123 4567" />
+              </label>
+
+              <label>
+                <span>Location</span>
+                <input name="location" type="text" value={profile.location} placeholder="Dublin, Ireland" />
+              </label>
+
+              <label class="business-form-full">
+                <span>Headline</span>
+                <input name="headline" type="text" value={profile.headline} placeholder="Cafe, hotel, restaurant, events business" />
+              </label>
+            </div>
+
+            <label class="business-form-full">
+              <span>Business description</span>
+              <textarea name="bio" rows="4" placeholder="Describe your business, venue, team, and the kind of shifts you usually post.">{profile.bio}</textarea>
+            </label>
+
+            <div class="business-form-actions">
+              <a href="/business/create-shift" class="btn btn-secondary">Post a shift</a>
+              <button type="submit" class="btn btn-primary">
+                Save profile
+                <i class="fa-solid fa-check"></i>
+              </button>
+            </div>
+          </form>
+        </article>
+      </section>
+    </section>
+  </main>
+</Layout>

@@ -17,10 +17,11 @@ export const POST: APIRoute = async (context) => {
   const token = getAccessToken(context);
 
   if (!user || !token) {
-    return redirectWithMessage("/auth/signin", "error", "Please sign in to post a shift.");
+    return redirectWithMessage("/auth/signin", "error", "Please sign in to edit a shift.");
   }
 
   const form = await context.request.formData();
+  const shiftId = String(form.get("shift_id") ?? "").trim();
   const title = String(form.get("title") ?? "").trim();
   const location = String(form.get("location") ?? "").trim();
   const shiftDate = String(form.get("shift_date") ?? "");
@@ -28,10 +29,11 @@ export const POST: APIRoute = async (context) => {
   const endTime = String(form.get("end_time") ?? "");
   const payRate = Number(form.get("pay_rate"));
   const shiftType = String(form.get("shift_type") ?? "Flexible").trim();
+  const status = String(form.get("status") ?? "open").trim();
   const description = String(form.get("description") ?? "").trim();
 
-  if (!title || !location || !shiftDate || !startTime || !endTime || !payRate) {
-    return redirectWithMessage("/business/create-shift", "error", "Please complete all required shift fields.");
+  if (!shiftId || !title || !location || !shiftDate || !startTime || !endTime || !payRate) {
+    return redirectWithMessage(`/business/shifts/edit/${shiftId || ""}`, "error", "Please complete all required shift fields.");
   }
 
   try {
@@ -41,12 +43,11 @@ export const POST: APIRoute = async (context) => {
     );
     const company = profileRows?.[0]?.full_name ?? "Business";
 
-    await supabaseFetch("/rest/v1/shifts", {
-      method: "POST",
+    await supabaseFetch(`/rest/v1/shifts?id=eq.${shiftId}&business_id=eq.${user.id}`, {
+      method: "PATCH",
       token,
       prefer: "return=minimal",
       body: {
-        business_id: user.id,
         title,
         company,
         location,
@@ -55,16 +56,17 @@ export const POST: APIRoute = async (context) => {
         end_time: endTime,
         pay_rate: payRate,
         shift_type: shiftType,
+        status,
         description,
       },
     });
 
-    return redirectWithMessage("/business/shifts", "notice", "Shift posted successfully.");
+    return redirectWithMessage("/business/shifts", "notice", "Shift updated successfully.");
   } catch (error) {
     return redirectWithMessage(
-      "/business/create-shift",
+      `/business/shifts/edit/${shiftId}`,
       "error",
-      error instanceof Error ? error.message : "Could not post shift."
+      error instanceof Error ? error.message : "Could not update shift."
     );
   }
 };

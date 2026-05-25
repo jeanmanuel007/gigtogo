@@ -14,7 +14,9 @@ const navItems = isBusiness
       { href: "/business/create-shift", icon: "fa-solid fa-circle-plus", label: "Create Shift", key: "create" },
       { href: "/business/shifts", icon: "fa-regular fa-calendar", label: "Shifts", key: "shifts" },
       { href: "/business/applications", icon: "fa-regular fa-file-lines", label: "Applicants", key: "applications" },
+      { href: "/business/profile", icon: "fa-regular fa-user", label: "Profile", key: "profile" },
       { href: "#", icon: "fa-regular fa-message", label: "Messages", key: "messages" },
+      { href: "/business/contact", icon: "fa-solid fa-phone", label: "Contact Us", key: "contact" },
       { href: "#", icon: "fa-regular fa-circle-question", label: "Help", key: "help" },
     ]
   : [
@@ -23,8 +25,8 @@ const navItems = isBusiness
       { href: "#", icon: "fa-regular fa-envelope", label: "Messages", key: "messages" },
       { href: "/worker/shifts", icon: "fa-regular fa-hourglass-half", label: "Shifts", key: "shifts" },
       { href: "/worker/applications", icon: "fa-regular fa-file-lines", label: "Applications", key: "applications" },
-      { href: "#", icon: "fa-regular fa-credit-card", label: "Payments", key: "payments" },
-      { href: "#", icon: "fa-solid fa-phone", label: "Contact Us", key: "contact" },
+      { href: "/worker/payments", icon: "fa-regular fa-credit-card", label: "Payments", key: "payments" },
+      { href: "/worker/contact", icon: "fa-solid fa-phone", label: "Contact Us", key: "contact" },
       { href: "#", icon: "fa-regular fa-circle-question", label: "Help", key: "help" },
     ];
 
@@ -36,6 +38,7 @@ const quickLinks = isBusiness
         { href: "/business/create-shift", icon: "fa-solid fa-circle-plus", label: "Post a shift" },
         { href: "/business/applications", icon: "fa-solid fa-user-check", label: "Review applicants" },
         { href: "/business/shifts", icon: "fa-regular fa-calendar-check", label: "Manage shifts" },
+        { href: "/business/contact", icon: "fa-solid fa-phone", label: "Contact support" },
       ],
     }
   : {
@@ -44,6 +47,7 @@ const quickLinks = isBusiness
       links: [
         { href: "/worker/shifts", icon: "fa-regular fa-hourglass-half", label: "Find shifts" },
         { href: "/worker/applications", icon: "fa-regular fa-file-lines", label: "Applications" },
+        { href: "/worker/payments", icon: "fa-regular fa-credit-card", label: "Payments" },
         { href: "/worker/profile", icon: "fa-regular fa-user", label: "Update profile" },
       ],
     };

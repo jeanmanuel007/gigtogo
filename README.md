@@ -1,33 +1,38 @@
-# Astro Starter Kit: Minimal
+# GigToGo
+
+Astro app for worker and business shift matching.
+
+## Supabase Setup
+
+1. Create a Supabase project.
+2. In Supabase, open **SQL Editor** and run the contents of `supabase-schema.sql`.
+3. Go to **Project Settings > API** and copy:
+   - Project URL
+   - anon public key
+4. Create a local `.env` file using `.env.example`:
 
 ```sh
-npm create astro@latest -- --template minimal
+SUPABASE_URL=https://your-project-ref.supabase.co
+SUPABASE_ANON_KEY=your-supabase-anon-key
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+5. In Supabase Auth settings, for easiest local testing, disable email confirmation. Otherwise register will create the user, then ask them to confirm by email before login.
+6. Run the app:
 
-## 🚀 Project Structure
-
-Inside of your Astro project, you'll see the following folders and files:
-
-```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
+```sh
+npm run dev
 ```
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+Useful test flow:
 
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
+1. Register a business account.
+2. Log in as that business and create a shift.
+3. Log out.
+4. Register a worker account.
+5. Apply to the shift from `/worker/shifts`.
+6. Log back into the business account and accept or reject the applicant in `/business/applications`.
 
-Any static assets, like images, can be placed in the `public/` directory.
-
-## 🧞 Commands
-
-All commands are run from the root of the project, from a terminal:
+## Commands
 
 | Command                   | Action                                           |
 | :------------------------ | :----------------------------------------------- |
@@ -37,7 +42,3 @@ All commands are run from the root of the project, from a terminal:
 | `npm run preview`         | Preview your build locally, before deploying     |
 | `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
 | `npm run astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).

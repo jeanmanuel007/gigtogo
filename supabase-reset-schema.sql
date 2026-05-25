@@ -1,4 +1,8 @@
-create table if not exists public.profiles (
+drop table if exists public.shift_applications cascade;
+drop table if exists public.shifts cascade;
+drop table if exists public.profiles cascade;
+
+create table public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text not null,
   full_name text not null,
@@ -13,7 +17,7 @@ create table if not exists public.profiles (
   created_at timestamptz not null default now()
 );
 
-create table if not exists public.shifts (
+create table public.shifts (
   id uuid primary key default gen_random_uuid(),
   business_id uuid not null references public.profiles(id) on delete cascade,
   title text not null,
@@ -30,7 +34,7 @@ create table if not exists public.shifts (
   created_at timestamptz not null default now()
 );
 
-create table if not exists public.shift_applications (
+create table public.shift_applications (
   id uuid primary key default gen_random_uuid(),
   shift_id uuid not null references public.shifts(id) on delete cascade,
   worker_id uuid not null references public.profiles(id) on delete cascade,

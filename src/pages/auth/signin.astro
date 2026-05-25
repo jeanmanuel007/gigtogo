@@ -64,7 +64,14 @@ const notice = Astro.url.searchParams.get("notice");
         <div class="auth-brand-content">
           <h1>Welcome to</h1>
           <div class="auth-brand-logo">
-            <img src="/GigToGo_logo.svg" alt="GigToGo" />
+            <span class="auth-brand-mark" aria-hidden="true">
+              <svg viewBox="0 0 105 128" role="img">
+                <path d="M52.5 3.3C22.9 3.3 3.3 25.6 3.3 53.5s49.1 70.3 49.1 70.3 49.1-36.8 49.1-70.3S82.1 3.3 52.5 3.3Z" />
+                <rect x="30.1" y="50.8" width="44.6" height="26.8" rx="4.5" ry="4.5" />
+                <rect x="39.2" y="43" width="26.8" height="11.2" rx="3.3" ry="3.3" />
+              </svg>
+            </span>
+            <span>GigToGo</span>
           </div>
         </div>
         <div class="auth-brand-shape"></div>

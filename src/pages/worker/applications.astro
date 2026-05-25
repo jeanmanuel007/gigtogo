@@ -1,0 +1,184 @@
+---
+import Layout from "../../layouts/layout.astro";
+import AppSidebar from "../../components/AppSidebar.astro";
+import WorkerTopActions from "../../components/workerTopActions.astro";
+import { hasSupabaseConfig, supabaseFetch } from "../../lib/supabaseServer";
+
+export const prerender = false;
+
+const token = Astro.cookies.get("gigtogo_access_token")?.value;
+const userId = Astro.cookies.get("gigtogo_user_id")?.value;
+const error = Astro.url.searchParams.get("error");
+const notice = Astro.url.searchParams.get("notice");
+
+const statusLabels: Record<string, string> = {
+  pending: "Pending review",
+  accepted: "Accepted",
+  rejected: "Rejected",
+  cancelled: "Cancelled",
+};
+
+let applications = [
+  {
+    id: "demo",
+    shiftId: "demo",
+    title: "Barista",
+    company: "Liberties Coffee",
+    location: "Smithfield, Dublin",
+    time: "Today · 14:00 - 20:00",
+    pay: "€14.50/hr",
+    status: "Demo application",
+    rawStatus: "demo",
+    note: "Connect Supabase to see your real applications.",
+  },
+];
+
+if (hasSupabaseConfig() && !token) {
+  return Astro.redirect("/auth/signin?error=Please sign in to view your applications.");
+}
+
+if (hasSupabaseConfig() && token && userId) {
+  try {
+    const rows = await supabaseFetch(
+      `/rest/v1/shift_applications?worker_id=eq.${userId}&select=id,status,note,created_at,shift_id,shifts(title,company,business_id,location,shift_date,start_time,end_time,pay_rate)&order=created_at.desc`,
+      { token }
+    );
+
+    const businessIds = Array.from(
+      new Set(rows.map((row: any) => row.shifts?.business_id).filter(Boolean))
+    );
+    const businessNames = new Map();
+
+    if (businessIds.length > 0) {
+      const profiles = await supabaseFetch(
+        `/rest/v1/profiles?id=in.(${businessIds.join(",")})&select=id,full_name`,
+        { token }
+      );
+
+      for (const profile of profiles) {
+        businessNames.set(profile.id, profile.full_name);
+      }
+    }
+
+    applications = rows.map((row: any) => ({
+      id: row.id,
+      shiftId: row.shift_id,
+      title: row.shifts?.title ?? "Shift",
+      company: businessNames.get(row.shifts?.business_id) ?? row.shifts?.company ?? "Business",
+      location: row.shifts?.location ?? "Location pending",
+      time: row.shifts
+        ? `${row.shifts.shift_date} · ${row.shifts.start_time.slice(0, 5)} - ${row.shifts.end_time.slice(0, 5)}`
+        : "Time pending",
+      pay: row.shifts ? `€${Number(row.shifts.pay_rate).toFixed(2)}/hr` : "Pay pending",
+      status: statusLabels[row.status] ?? row.status,
+      rawStatus: row.status,
+      note: row.note || "No message added.",
+    }));
+  } catch {
+    applications = [];
+  }
+}
+---
+
+<Layout title="My Applications | GigToGo">
+  <main class="worker-ui">
+    <AppSidebar accountType="worker" active="applications" />
+
+    <section class="worker-ui-main">
+      <header class="worker-ui-topbar">
+        <div class="worker-ui-search">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" placeholder="Search applications, companies or locations" />
+        </div>
+
+        <WorkerTopActions active="applications" />
+      </header>
+
+      <div class="worker-ui-breadcrumb">
+        <span>Worker</span>
+        <span>/</span>
+        <strong>Applications</strong>
+      </div>
+
+      {error && <p class="auth-alert error">{error}</p>}
+      {notice && <p class="auth-alert notice">{notice}</p>}
+
+      <div class="business-section-head">
+        <div>
+          <h2>Your applications</h2>
+          <p>Track the shifts you have applied for and their current status.</p>
+        </div>
+        <a href="/worker/shifts" class="btn btn-primary">Find more shifts</a>
+      </div>
+
+      {applications.length === 0 ? (
+        <section class="worker-profile-panel">
+          <div class="worker-profile-panel-head">
+            <div>
+              <p>No applications yet</p>
+              <h2>Start with an open shift</h2>
+            </div>
+          </div>
+          <p class="worker-profile-bio">
+            When you apply for a shift, it will appear here with the business response.
+          </p>
+          <a href="/worker/shifts" class="btn btn-primary">Browse shifts</a>
+        </section>
+      ) : (
+        <section class="worker-ui-card-grid">
+          {applications.map((application) => (
+            <article class="worker-shift-card">
+              <div class="worker-shift-card-body">
+                <div class="worker-shift-company">
+                  <img src="/insomnia.jpg" alt="" class="business-shift-logo" />
+                  <div>
+                    <small>{application.company}</small>
+                    <h3>{application.title}</h3>
+                  </div>
+                </div>
+
+                <div class="worker-shift-meta">
+                  <p>
+                    <i class="fa-regular fa-clock"></i>
+                    {application.time}
+                  </p>
+                  <p>
+                    <i class="fa-solid fa-location-dot"></i>
+                    {application.location}
+                  </p>
+                  <p>
+                    <i class="fa-regular fa-message"></i>
+                    {application.note}
+                  </p>
+                </div>
+
+                <div class="worker-shift-card-footer">
+                  <div>
+                    <strong>{application.pay}</strong>
+                    <span>{application.status}</span>
+                  </div>
+                </div>
+
+                <div class="worker-shift-actions">
+                  <a href={`/worker/shifts/${application.shiftId}`} class="btn btn-secondary">View shift</a>
+                  {["pending", "accepted"].includes(application.rawStatus) ? (
+                    <form method="POST" action="/api/applications/cancel">
+                      <input type="hidden" name="application_id" value={application.id} />
+                      <input type="hidden" name="shift_id" value={application.shiftId} />
+                      <input type="hidden" name="back_to" value="/worker/applications" />
+                      <button type="submit" class="btn btn-secondary">
+                        {application.rawStatus === "accepted" ? "Cancel shift" : "Cancel application"}
+                      </button>
+                    </form>
+                  ) : (
+                    <a href="/worker/shifts" class="btn btn-primary">Browse shifts</a>
+                  )}
+                </div>
+              </div>
+            </article>
+          ))}
+        </section>
+      )}
+    </section>
+  </main>
+</Layout>

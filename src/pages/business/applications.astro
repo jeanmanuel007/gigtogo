@@ -16,7 +16,7 @@ const fallbackApplicants = [
     location: "Stoneybatter",
     experience: "2 years experience",
     rating: "4.9",
-    status: "New applicant",
+    status: "pending",
     avatar: "R",
   },
   {
@@ -29,7 +29,7 @@ const fallbackApplicants = [
     location: "Dublin City Centre",
     experience: "1 year experience",
     rating: "4.7",
-    status: "Available",
+    status: "pending",
     avatar: "D",
   },
   {
@@ -42,7 +42,7 @@ const fallbackApplicants = [
     location: "Smithfield",
     experience: "3 years experience",
     rating: "5.0",
-    status: "Top rated",
+    status: "pending",
     avatar: "A",
   },
 ];
@@ -57,27 +57,48 @@ let applicants = fallbackApplicants;
 if (hasSupabaseConfig() && token && userId) {
   try {
     const rows = await supabaseFetch(
-      `/rest/v1/shift_applications?select=id,status,worker_id,shift_id,profiles!shift_applications_worker_id_fkey(full_name,email),shifts!inner(title,location,business_id)&shifts.business_id=eq.${userId}&order=created_at.desc`,
+      `/rest/v1/shift_applications?select=id,status,note,worker_id,shift_id,profiles!shift_applications_worker_id_fkey(full_name,email,headline,bio,skills,experience,availability,location),shifts!inner(title,location,business_id)&shifts.business_id=eq.${userId}&order=created_at.desc`,
       { token }
     );
 
-    applicants = rows.map((row: any) => ({
-      applicationId: row.id,
-      shiftId: row.shift_id,
-      workerId: row.worker_id,
-      name: row.profiles?.full_name ?? row.profiles?.email ?? "Worker",
-      role: "Applicant",
-      shift: row.shifts?.title ?? "Shift",
-      location: row.shifts?.location ?? "Location pending",
-      experience: "Profile details available soon",
-      rating: "New",
-      status: row.status,
-      avatar: (row.profiles?.full_name ?? row.profiles?.email ?? "W").slice(0, 1).toUpperCase(),
-    }));
+    const realApplicants = rows.map((row: any) => {
+      const profile = row.profiles ?? {};
+      const skills = Array.isArray(profile.skills) ? profile.skills.filter(Boolean) : [];
+      const profileSummary =
+        profile.experience ||
+        profile.bio ||
+        profile.availability ||
+        row.note ||
+        "Application received and ready for review.";
+
+      return {
+        applicationId: row.id,
+        shiftId: row.shift_id,
+        workerId: row.worker_id,
+        name: profile.full_name ?? profile.email ?? "Worker",
+        role: profile.headline ?? "Applicant",
+        shift: row.shifts?.title ?? "Shift",
+        location: profile.location ?? row.shifts?.location ?? "Location pending",
+        experience: profileSummary,
+        skills: skills.slice(0, 3).join(" · "),
+        rating: row.status === "accepted" ? "Booked" : "New",
+        status: row.status,
+        avatar: (profile.full_name ?? profile.email ?? "W").slice(0, 1).toUpperCase(),
+      };
+    });
+
+    applicants = [...realApplicants, ...fallbackApplicants];
   } catch {
     applicants = fallbackApplicants;
   }
 }
+
+const statusLabels: Record<string, string> = {
+  pending: "Pending review",
+  accepted: "Accepted",
+  rejected: "Rejected",
+  cancelled: "Cancelled by worker",
+};
 ---
 
 <Layout title="Applicants | GigToGo">
@@ -96,65 +117,81 @@ if (hasSupabaseConfig() && token && userId) {
       {error && <p class="auth-alert error">{error}</p>}
       {notice && <p class="auth-alert notice">{notice}</p>}
 
-      <div class="worker-ui-card-grid">
+      <div class="business-applicant-grid">
 
         {applicants.map((user) => (
-          <div class="worker-shift-card">
-
-            <div class="worker-shift-card-body">
-
-              <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-                <div style="
-                  width:40px;
-                  height:40px;
-                  border-radius:50%;
-                  background: var(--blue);
-                  color:#fff;
-                  display:flex;
-                  align-items:center;
-                  justify-content:center;
-                  font-weight:700;
-                ">
-                  {user.avatar}
-                </div>
-
-                <div>
-                  <strong>{user.name}</strong>
-                  <small style="display:block; color:#777;">{user.role}</small>
-                </div>
+          <article class="business-applicant-card">
+            <div class="business-applicant-top">
+              <div class="business-applicant-avatar">
+                {user.avatar}
               </div>
 
-              <small>{user.shift}</small>
+              <div>
+                <h3>{user.name}</h3>
+                <p>{user.role}</p>
+              </div>
 
-              <p style="margin-top:6px;">
+              <span>{statusLabels[user.status] ?? user.status}</span>
+            </div>
+
+            <div class="business-applicant-info">
+              <p>
+                <i class="fa-solid fa-briefcase"></i>
+                {user.shift}
+              </p>
+              <p>
                 <i class="fa-solid fa-location-dot"></i>
                 {user.location}
               </p>
-
-              <p style="margin-top:4px; font-size:0.85rem; color:#555;">
+              <p>
+                <i class="fa-solid fa-graduation-cap"></i>
                 {user.experience}
               </p>
-
-              <p style="margin-top:4px;">
-                ⭐ {user.rating}
+              {user.skills && (
+                <p>
+                  <i class="fa-solid fa-star"></i>
+                  {user.skills}
+                </p>
+              )}
+              <p>
+                <i class="fa-solid fa-circle-check"></i>
+                {user.rating}
               </p>
+            </div>
 
-              <span class="shift-badge" style="margin-top:8px; display:inline-block;">
-                {user.status}
-              </span>
-
-              <div class="shift-card-actions" style="margin-top:14px;">
+            <div class="business-applicant-actions">
+              {user.status === "pending" ? (
+                <>
                 <form method="POST" action="/api/applications/accept">
                   <input type="hidden" name="application_id" value={user.applicationId} />
                   <input type="hidden" name="shift_id" value={user.shiftId} />
                   <input type="hidden" name="worker_id" value={user.workerId} />
-                  <button class="btn btn-primary" type="submit">Accept</button>
+                  <button class="business-btn-primary" type="submit">Accept</button>
                 </form>
-                <button class="btn btn-secondary">Reject</button>
-              </div>
-
+                <form method="POST" action="/api/applications/reject">
+                  <input type="hidden" name="application_id" value={user.applicationId} />
+                  <button class="business-btn-outline" type="submit">Reject</button>
+                </form>
+                </>
+              ) : user.status === "accepted" ? (
+                <>
+                  <span class="business-applicant-accepted">
+                    <i class="fa-solid fa-circle-check"></i>
+                    Accepted
+                  </span>
+                  <form method="POST" action="/api/applications/reject">
+                    <input type="hidden" name="application_id" value={user.applicationId} />
+                    <input type="hidden" name="shift_id" value={user.shiftId} />
+                    <input type="hidden" name="worker_id" value={user.workerId} />
+                    <input type="hidden" name="intent" value="cancel" />
+                    <button class="business-btn-outline" type="submit">Cancel application</button>
+                  </form>
+                </>
+              ) : (
+                <span class="business-applicant-closed">{statusLabels[user.status] ?? user.status}</span>
+              )}
             </div>
-          </div>
+          </article>
         ))}
 
       </div>

@@ -2,50 +2,72 @@
 import Layout from "../../layouts/layout.astro";
 import AppSidebar from "../../components/AppSidebar.astro";
 import WorkerTopActions from "../../components/workerTopActions.astro";
+import { hasSupabaseConfig, supabaseFetch } from "../../lib/supabaseServer";
 
-const availableShifts = [
+export const prerender = false;
+
+const token = Astro.cookies.get("gigtogo_access_token")?.value;
+const userId = Astro.cookies.get("gigtogo_user_id")?.value;
+const emailCookie = Astro.cookies.get("gigtogo_user_email")?.value ?? "";
+
+let profile = {
+  fullName: "Worker",
+  headline: "Hospitality worker",
+  location: "Dublin, Ireland",
+};
+
+let availableShifts = [
   {
+    id: "demo-1",
     role: "Barista",
     company: "Insomnia Coffee",
     location: "Talbot Street",
     pay: "€14.50/hr",
     time: "Today · 2:00 PM - 8:00 PM",
-    logo: "/insomnia_logo.webp",
+    logo: "/insomnia.jpg",
   },
   {
+    id: "demo-2",
     role: "Wait Staff",
     company: "Butlers",
     location: "Grafton Street",
     pay: "€14.90/hr",
     time: "Sat · 12:00 PM - 6:00 PM",
-    logo: "/butlers_logo.png",
+    logo: "/butlers.jpg",
   },
   {
+    id: "demo-3",
     role: "Front of House",
     company: "Maldron Hotel",
     location: "Smithfield",
     pay: "€15.40/hr",
     time: "Mon · 9:00 AM - 5:00 PM",
-    logo: "/maldron_logopng.png",
+    logo: "/maldron.jpg",
   },
 ];
 
-const nextShifts = [
+let nextShifts = [
   {
+    id: "demo-next-1",
     role: "Waitress",
     company: "Insomnia Coffee",
+    location: "Temple Bar",
     date: "Today",
     time: "14:00 - 22:00",
+    pay: "€14.50/hr",
   },
   {
+    id: "demo-next-2",
     role: "Event Staff",
     company: "Luna Events",
+    location: "Dublin City Centre",
     date: "Tomorrow",
     time: "18:00 - 00:00",
+    pay: "€17.00/hr",
   },
 ];
 
-const completed = [
+let completed = [
   {
     company: "Travelodge",
     role: "Kitchen Porter",
@@ -58,9 +80,236 @@ const completed = [
     role: "Shift Supervisor",
     hours: "6 hours completed",
     status: "Paid",
-    logo: "/starbucks_logo.png",
+    logo: "/starbucks.jpg",
   },
 ];
+
+const availableShiftSuggestions = [
+  {
+    id: "11111111-1111-4111-8111-111111111111",
+    role: "Barista",
+    company: "Butlers Chocolate Café",
+    location: "Stoneybatter, Dublin",
+    pay: "€14.50/hr",
+    time: "Today · 2:00 PM - 8:00 PM",
+    logo: "/butlers.jpg",
+  },
+  {
+    id: "22222222-2222-4222-8222-222222222222",
+    role: "Event Security",
+    company: "Penneys",
+    location: "O'Connell Street, Dublin",
+    pay: "€17.00/hr",
+    time: "Tomorrow · 6:00 PM - 12:00 AM",
+    logo: "/penneys.jpg",
+  },
+  {
+    id: "33333333-3333-4333-8333-333333333333",
+    role: "Kitchen Porter",
+    company: "Forno 500",
+    location: "Dame Street, Dublin",
+    pay: "€15.80/hr",
+    time: "Fri · 7:00 AM - 3:00 PM",
+    logo: "/forno.jpg",
+  },
+];
+
+const quickActions = [
+  {
+    href: "/worker/shifts",
+    icon: "fa-regular fa-hourglass-half",
+    title: "Browse shifts",
+    detail: "Find open work nearby",
+  },
+  {
+    href: "/worker/applications",
+    icon: "fa-regular fa-file-lines",
+    title: "Applications",
+    detail: "Track business replies",
+  },
+  {
+    href: "/worker/payments",
+    icon: "fa-solid fa-wallet",
+    title: "Payments",
+    detail: "Review payout status",
+  },
+  {
+    href: "/worker/profile",
+    icon: "fa-regular fa-user",
+    title: "Profile",
+    detail: "Update skills and availability",
+  },
+];
+
+let applicationCount = 0;
+let acceptedCount = 0;
+let pendingCount = 0;
+
+const mapShift = (shift: any) => ({
+  id: shift.id,
+  role: shift.title,
+  company: shift.company,
+  location: shift.location,
+  date: shift.shift_date,
+  time: `${shift.start_time.slice(0, 5)} - ${shift.end_time.slice(0, 5)}`,
+  pay: `€${Number(shift.pay_rate).toFixed(2)}/hr`,
+});
+
+if (hasSupabaseConfig() && !token) {
+  return Astro.redirect("/auth/signin?error=Please sign in to view your dashboard.");
+}
+
+if (hasSupabaseConfig() && token && userId) {
+  availableShifts = [];
+  nextShifts = [];
+  completed = [];
+
+  try {
+    const profileRows = await supabaseFetch(
+      `/rest/v1/profiles?id=eq.${userId}&select=full_name,headline,location&limit=1`,
+      { token }
+    );
+    const profileRow = profileRows?.[0];
+
+    if (profileRow) {
+      profile = {
+        fullName: profileRow.full_name ?? "Worker",
+        headline: profileRow.headline ?? "Hospitality worker",
+        location: profileRow.location ?? "Dublin, Ireland",
+      };
+    }
+  } catch {
+    try {
+      const profileRows = await supabaseFetch(
+        `/rest/v1/profiles?id=eq.${userId}&select=full_name&limit=1`,
+        { token }
+      );
+      const profileRow = profileRows?.[0];
+
+      if (profileRow) {
+        profile = {
+          ...profile,
+          fullName: profileRow.full_name ?? "Worker",
+        };
+      }
+    } catch {
+      // Profile details are non-blocking for dashboard shift data.
+    }
+  }
+
+  try {
+    const shiftRows = await supabaseFetch(
+      "/rest/v1/shifts?status=eq.open&select=id,title,company,business_id,location,shift_date,start_time,end_time,pay_rate,shift_type&order=created_at.desc&limit=4",
+      { token }
+    );
+
+    const businessIds = Array.from(new Set(shiftRows.map((shift: any) => shift.business_id).filter(Boolean)));
+    const businessNames = new Map();
+
+    if (businessIds.length > 0) {
+      const profileRows = await supabaseFetch(
+        `/rest/v1/profiles?id=in.(${businessIds.join(",")})&select=id,full_name`,
+        { token }
+      );
+
+      for (const profile of profileRows) {
+        businessNames.set(profile.id, profile.full_name);
+      }
+    }
+
+    availableShifts = shiftRows.map((shift: any) => ({
+      id: shift.id,
+      role: shift.title,
+      company: businessNames.get(shift.business_id) ?? shift.company,
+      location: shift.location,
+      pay: `€${Number(shift.pay_rate).toFixed(2)}/hr`,
+      time: `${shift.shift_date} · ${shift.start_time.slice(0, 5)} - ${shift.end_time.slice(0, 5)}`,
+      logo: "/insomnia.jpg",
+    }));
+  } catch {
+    availableShifts = [];
+  }
+
+  try {
+    const applicationRows = await supabaseFetch(
+      `/rest/v1/shift_applications?worker_id=eq.${userId}&select=id,status,shift_id,shifts(id,title,company,business_id,location,shift_date,start_time,end_time,pay_rate,status)&order=created_at.desc`,
+      { token }
+    );
+
+    const acceptedBusinessIds = Array.from(
+      new Set(applicationRows.map((application: any) => application.shifts?.business_id).filter(Boolean))
+    );
+    const acceptedBusinessNames = new Map();
+
+    if (acceptedBusinessIds.length > 0) {
+      const profileRows = await supabaseFetch(
+        `/rest/v1/profiles?id=in.(${acceptedBusinessIds.join(",")})&select=id,full_name`,
+        { token }
+      );
+
+      for (const profile of profileRows) {
+        acceptedBusinessNames.set(profile.id, profile.full_name);
+      }
+    }
+
+    applicationCount = applicationRows.length;
+    const acceptedApplications = applicationRows.filter(
+      (application: any) => application.status?.toLowerCase() === "accepted" && application.shifts
+    );
+    acceptedCount = acceptedApplications.length;
+    pendingCount = applicationRows.filter((application: any) => application.status?.toLowerCase() === "pending").length;
+
+    const acceptedFromApplications = acceptedApplications
+      .sort((a: any, b: any) => {
+        const aTime = `${a.shifts.shift_date}T${a.shifts.start_time}`;
+        const bTime = `${b.shifts.shift_date}T${b.shifts.start_time}`;
+        return aTime.localeCompare(bTime);
+      })
+      .map((application: any) =>
+        mapShift({
+          ...application.shifts,
+          id: application.shift_id,
+          company: acceptedBusinessNames.get(application.shifts.business_id) ?? application.shifts.company,
+        })
+      );
+
+    const byId = new Map();
+
+    for (const shift of acceptedFromApplications) {
+      byId.set(shift.id, shift);
+    }
+
+    nextShifts = Array.from(byId.values())
+      .sort((a: any, b: any) => `${a.date}T${a.time}`.localeCompare(`${b.date}T${b.time}`))
+      .slice(0, 3);
+
+    completed = nextShifts
+      .slice(0, 2)
+      .map((shift: any) => ({
+        company: shift.company,
+        role: shift.role,
+        hours: `${shift.date} · ${shift.time}`,
+        status: "Accepted",
+        logo: "/insomnia.jpg",
+      }));
+
+    acceptedCount = Math.max(acceptedCount, nextShifts.length);
+  } catch {
+    nextShifts = [];
+    completed = [];
+  }
+}
+
+const currentShift = nextShifts[0];
+const suggestedShift = availableShifts[0] ?? {
+  id: "11111111-1111-4111-8111-111111111111",
+  role: "Barista",
+  company: "Insomnia Coffee",
+  location: "Stoneybatter, Dublin",
+  pay: "€14.50/hr",
+  time: "Today · 14:00 - 20:00",
+  logo: "/insomnia.jpg",
+};
 ---
 
 <Layout title="Worker Dashboard | GigToGo">
@@ -74,7 +323,7 @@ const completed = [
           <input type="text" placeholder="Search shifts, companies or messages" />
         </div>
 
-        <WorkerTopActions active="dashboard" />
+        <WorkerTopActions active="dashboard" displayName={profile.fullName} />
       </header>
 
       <div class="worker-ui-breadcrumb">
@@ -88,85 +337,112 @@ const completed = [
         <div class="worker-dashboard-hero-overlay"></div>
         <div>
           <p>Welcome back</p>
-          <h1>Mary O'Connor</h1>
-          <span>Your next shift starts today at 14:00.</span>
+          <h1>{profile.fullName}</h1>
+          <span>
+            {currentShift
+              ? `Your next accepted shift is ${currentShift.role} at ${currentShift.company}.`
+              : `${profile.headline} · ${profile.location}`}
+          </span>
         </div>
       </section>
 
       <section class="worker-dashboard-stats" aria-label="Worker dashboard summary">
         <article>
           <i class="fa-solid fa-briefcase"></i>
-          <strong>36</strong>
-          <span>Jobs done</span>
+          <strong>{acceptedCount}</strong>
+          <span>Accepted shifts</span>
         </article>
         <article>
           <i class="fa-regular fa-file-lines"></i>
-          <strong>12</strong>
+          <strong>{applicationCount}</strong>
           <span>Applications</span>
         </article>
         <article>
           <i class="fa-regular fa-calendar-check"></i>
-          <strong>2</strong>
+          <strong>{nextShifts.length}</strong>
           <span>Next shifts</span>
         </article>
         <article>
           <i class="fa-solid fa-wallet"></i>
-          <strong>€428</strong>
-          <span>To receive</span>
+          <strong>{pendingCount}</strong>
+          <span>Pending replies</span>
         </article>
       </section>
 
       <section class="worker-dashboard-grid">
-        <article class="worker-profile-panel worker-dashboard-clock">
+        <div class="worker-dashboard-main-column">
+        <article class="worker-profile-panel worker-dashboard-next-panel">
           <div class="worker-profile-panel-head">
             <div>
-              <p>Clock in</p>
-              <h2>Current shift</h2>
+              <p>Schedule</p>
+              <h2>Next shift</h2>
             </div>
-            <span>Today</span>
+            <a href="/worker/applications">Manage</a>
           </div>
 
-          <article class="worker-profile-panel worker-shift-timer" data-shift-timer>
-            <div class="worker-shift-timer-head">
-              <p>Your shift today</p>
-              <span data-shift-status>Ready to clock in</span>
+          {nextShifts.length === 0 ? (
+            <p class="worker-profile-bio">Accepted shifts will appear here after a business approves your application.</p>
+          ) : (
+            <div class="worker-dashboard-next-list">
+              {nextShifts.map((shift, index) => (
+                <a href={`/worker/shifts/${shift.id}`} class:list={[index === 0 && "is-primary"]}>
+                  <img src="/insomnia.jpg" alt="" />
+                  <div class="worker-dashboard-next-copy">
+                    <small>{shift.company}</small>
+                    <strong>{shift.role}</strong>
+                    <span>
+                      <i class="fa-solid fa-location-dot"></i>
+                      {shift.location}
+                    </span>
+                  </div>
+                  <div class="worker-dashboard-next-meta">
+                    <span>
+                      <i class="fa-regular fa-calendar"></i>
+                      {shift.date}
+                    </span>
+                    <em>{shift.time}</em>
+                  </div>
+                </a>
+              ))}
+            </div>
+          )}
+
+          <div class="worker-dashboard-inline-suggestions">
+            <div class="worker-dashboard-inline-head">
+              <p>Suggested next</p>
+              <a href="/worker/shifts">Browse all</a>
             </div>
 
-            <div class="worker-shift-timer-body">
-              <strong data-shift-clock>14:00-22:00</strong>
-              <span>Waitress</span>
-              <small>Insomnia Coffee · Temple Bar</small>
+            <div class="worker-dashboard-mini-shift-list">
+              {availableShiftSuggestions.map((shift) => (
+                <article>
+                  <img src={shift.logo} alt="" />
+                  <div>
+                    <small>{shift.company}</small>
+                    <strong>{shift.role}</strong>
+                    <span>{shift.location} · {shift.time}</span>
+                  </div>
+                  <em>{shift.pay}</em>
+                  <a href={`/worker/shifts/${shift.id}`} class="btn btn-secondary">View</a>
+                  <a href={`/worker/shifts/${shift.id}#apply`} class="btn btn-primary">Apply</a>
+                </article>
+              ))}
             </div>
-
-            <div class="worker-shift-timer-actions">
-              <button type="button" class="worker-shift-timer-icon" data-shift-reset aria-label="Reset timer">
-                <i class="fa-solid fa-rotate-left"></i>
-              </button>
-
-              <button type="button" class="worker-shift-timer-toggle" data-shift-toggle>
-                <i class="fa-solid fa-stopwatch"></i>
-                <span>Start</span>
-              </button>
-
-              <button type="button" class="worker-shift-timer-icon" aria-label="Shift timer settings">
-                <i class="fa-solid fa-gear"></i>
-              </button>
-            </div>
-          </article>
+          </div>
         </article>
 
         <article class="worker-profile-panel worker-dashboard-available">
           <div class="worker-profile-panel-head">
             <div>
               <p>Available nearby</p>
-              <h2>Recommended shifts</h2>
+              <h2>More recommended shifts</h2>
             </div>
             <a href="/worker/shifts">See all</a>
           </div>
 
           <div class="worker-dashboard-shift-cards">
-            {availableShifts.map((shift) => (
-              <a href="/worker/shifts" class="worker-dashboard-shift-card">
+            {availableShifts.slice(1, 4).map((shift) => (
+              <a href={`/worker/shifts/${shift.id}`} class="worker-dashboard-shift-card">
                 <img src={shift.logo} alt="" />
                 <div>
                   <strong>{shift.role}</strong>
@@ -176,29 +452,17 @@ const completed = [
                 <em>{shift.pay}</em>
               </a>
             ))}
-          </div>
-        </article>
-
-        <article class="worker-profile-panel">
-          <div class="worker-profile-panel-head">
-            <div>
-              <p>Schedule</p>
-              <h2>Next shifts</h2>
-            </div>
-            <a href="/worker/profile">Manage</a>
-          </div>
-
-          <div class="worker-dashboard-next-list">
-            {nextShifts.map((shift) => (
-              <div>
-                <span>{shift.date}</span>
+            {availableShifts.length <= 1 && (
+              <a href={`/worker/shifts/${suggestedShift.id}`} class="worker-dashboard-shift-card">
+                <img src={suggestedShift.logo} alt="" />
                 <div>
-                  <strong>{shift.role}</strong>
-                  <small>{shift.company}</small>
+                  <strong>{suggestedShift.role}</strong>
+                  <span>{suggestedShift.company}</span>
+                  <small>{suggestedShift.location} · {suggestedShift.time}</small>
                 </div>
-                <em>{shift.time}</em>
-              </div>
-            ))}
+                <em>{suggestedShift.pay}</em>
+              </a>
+            )}
           </div>
         </article>
 
@@ -222,25 +486,72 @@ const completed = [
             ))}
           </div>
         </article>
+        </div>
 
-        <article class="worker-profile-panel">
+        <aside class="worker-dashboard-side-column">
+        <article class="worker-profile-panel worker-dashboard-clock">
           <div class="worker-profile-panel-head">
             <div>
-              <p>Reviews</p>
-              <h2>Recent feedback</h2>
+              <p>Clock in</p>
+              <h2>Current shift</h2>
             </div>
-            <span>4.9 rating</span>
+            <span>{currentShift ? currentShift.date : "Open"}</span>
           </div>
 
-          <div class="worker-dashboard-review">
-            <strong>The Ivy Dublin</strong>
-            <p>Mary was calm, efficient and lovely with guests during a busy dinner service.</p>
-            <span>
-              <i class="fa-solid fa-star"></i>
-              5.0
-            </span>
+          <article class="worker-profile-panel worker-shift-timer" data-shift-timer>
+            <div class="worker-shift-timer-head">
+              <p>{currentShift ? "Your next shift" : "No accepted shift yet"}</p>
+              <span data-shift-status>{currentShift ? "Ready to clock in" : "Find shifts to get started"}</span>
+            </div>
+
+            <div class="worker-shift-timer-body">
+              <strong data-shift-clock data-shift-default={currentShift ? currentShift.time : "No shift selected"}>
+                {currentShift ? currentShift.time : "No shift selected"}
+              </strong>
+              <span>{currentShift?.role ?? "Browse open shifts"}</span>
+              <small>
+                {currentShift ? `${currentShift.company} · ${currentShift.location}` : "Apply and get accepted to unlock clock in"}
+              </small>
+            </div>
+
+            <div class="worker-shift-timer-actions">
+              <button type="button" class="worker-shift-timer-icon" data-shift-reset aria-label="Reset timer">
+                <i class="fa-solid fa-rotate-left"></i>
+              </button>
+
+              <button type="button" class="worker-shift-timer-toggle" data-shift-toggle disabled={!currentShift}>
+                <i class="fa-solid fa-stopwatch"></i>
+                <span>Start</span>
+              </button>
+
+              <button type="button" class="worker-shift-timer-icon" aria-label="Shift timer settings">
+                <i class="fa-solid fa-gear"></i>
+              </button>
+            </div>
+          </article>
+        </article>
+
+        <article class="worker-profile-panel worker-dashboard-actions-panel">
+          <div class="worker-profile-panel-head">
+            <div>
+              <p>Actions</p>
+              <h2>Keep moving</h2>
+            </div>
+          </div>
+
+          <div class="worker-dashboard-action-list">
+            {quickActions.map((action) => (
+              <a href={action.href}>
+                <i class={action.icon}></i>
+                <span>
+                  <strong>{action.title}</strong>
+                  <small>{action.detail}</small>
+                </span>
+              </a>
+            ))}
           </div>
         </article>
+        </aside>
       </section>
     </section>
   </main>
@@ -248,59 +559,54 @@ const completed = [
   <script>
     document.querySelectorAll("[data-shift-timer]").forEach((timer) => {
       const clock = timer.querySelector("[data-shift-clock]");
-      const status = timer.querySelector("[data-shift-status]");
       const toggle = timer.querySelector("[data-shift-toggle]");
-      const toggleLabel = toggle?.querySelector("span");
       const reset = timer.querySelector("[data-shift-reset]");
+      const status = timer.querySelector("[data-shift-status]");
+      const defaultValue = clock?.getAttribute("data-shift-default") ?? "00:00";
+      let startedAt = 0;
       let elapsed = 0;
-      let intervalId;
+      let interval = 0;
 
-      const formatElapsed = (totalSeconds) => {
-        const hours = Math.floor(totalSeconds / 3600);
-        const minutes = Math.floor((totalSeconds % 3600) / 60);
-        const seconds = totalSeconds % 60;
-
-        if (hours > 0) {
-          return `${hours}h:${String(minutes).padStart(2, "0")}m:${String(seconds).padStart(2, "0")}s`;
-        }
-
-        return `${minutes}m:${String(seconds).padStart(2, "0")}s`;
+      const formatElapsed = (milliseconds) => {
+        const totalSeconds = Math.floor(milliseconds / 1000);
+        const hours = String(Math.floor(totalSeconds / 3600)).padStart(2, "0");
+        const minutes = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, "0");
+        const seconds = String(totalSeconds % 60).padStart(2, "0");
+        return `${hours}:${minutes}:${seconds}`;
       };
 
-      const render = () => {
-        if (!clock) return;
-        clock.textContent = elapsed > 0 ? formatElapsed(elapsed) : "14:00-22:00";
-      };
-
-      const stopTimer = () => {
-        window.clearInterval(intervalId);
-        intervalId = undefined;
+      const stop = () => {
+        window.clearInterval(interval);
+        interval = 0;
         timer.classList.remove("is-active");
-        if (status) status.textContent = elapsed > 0 ? "Paused" : "Ready to clock in";
-        if (toggleLabel) toggleLabel.textContent = elapsed > 0 ? "Resume" : "Start";
+        if (toggle) toggle.querySelector("span").textContent = "Start";
+        if (status) status.textContent = "Paused";
       };
 
       toggle?.addEventListener("click", () => {
-        if (intervalId) {
-          stopTimer();
+        if (toggle.disabled) return;
+
+        if (interval) {
+          elapsed += Date.now() - startedAt;
+          stop();
           return;
         }
 
+        startedAt = Date.now();
         timer.classList.add("is-active");
+        toggle.querySelector("span").textContent = "Clock out";
         if (status) status.textContent = "Clocked in";
-        if (toggleLabel) toggleLabel.textContent = "Stop";
-        elapsed += 1;
-        render();
-        intervalId = window.setInterval(() => {
-          elapsed += 1;
-          render();
+
+        interval = window.setInterval(() => {
+          if (clock) clock.textContent = formatElapsed(elapsed + Date.now() - startedAt);
         }, 1000);
       });
 
       reset?.addEventListener("click", () => {
         elapsed = 0;
-        stopTimer();
-        render();
+        stop();
+        if (clock) clock.textContent = defaultValue;
+        if (status) status.textContent = "Ready to clock in";
       });
     });
   </script>

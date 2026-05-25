@@ -10,7 +10,7 @@ const shiftDetails = [
   {
     id: "11111111-1111-4111-8111-111111111111",
     title: "Barista",
-    company: "Insomnia Coffee",
+    company: "Butlers Chocolate Café",
     type: "Part-time",
     location: "Stoneybatter, Dublin",
     address: "12 Manor Street, Dublin 7",
@@ -19,28 +19,28 @@ const shiftDetails = [
     total: "€87.00 estimated",
     distance: "1.8 km away",
     tag: "Fast apply",
-    logo: "/insomnia_logo.webp",
-    image: "/image_home_1.png",
+    logo: "/butlers.jpg",
+    image: "/butlers.jpg",
     rating: "4.8",
     completed: "126 shifts completed",
     about:
-      "A busy local coffee shop looking for a friendly barista to support counter service, drinks, and light closing tasks.",
+      "A busy chocolate café looking for a friendly barista to support counter service, drinks, and light closing tasks.",
     requirements: ["Barista experience", "Comfortable with POS", "Available this afternoon"],
   },
   {
     id: "22222222-2222-4222-8222-222222222222",
     title: "Event Security",
-    company: "Luna Events",
+    company: "Penneys",
     type: "Evening",
-    location: "Temple Bar, Dublin",
-    address: "Temple Bar, Dublin 2",
+    location: "O'Connell Street, Dublin",
+    address: "O'Connell Street, Dublin 1",
     time: "Tomorrow · 6:00 PM - 12:00 AM",
     pay: "€17.00/hr",
     total: "€102.00 estimated",
     distance: "3.2 km away",
     tag: "Urgent",
-    logo: "/GigToGo_icon.png",
-    image: "/image_home_1.png",
+    logo: "/penneys.jpg",
+    image: "/penneys.jpg",
     rating: "4.6",
     completed: "84 shifts completed",
     about:
@@ -50,17 +50,17 @@ const shiftDetails = [
   {
     id: "33333333-3333-4333-8333-333333333333",
     title: "Kitchen Porter",
-    company: "Travelodge",
+    company: "Forno 500",
     type: "Full-time",
-    location: "Docklands, Dublin",
-    address: "North Wall Quay, Dublin 1",
+    location: "Dame Street, Dublin",
+    address: "Dame Street, Dublin 2",
     time: "Fri · 7:00 AM - 3:00 PM",
     pay: "€15.80/hr",
     total: "€126.40 estimated",
     distance: "4.1 km away",
     tag: "New",
-    logo: "/travelodge_logo.png",
-    image: "/image_home_1.png",
+    logo: "/forno.jpg",
+    image: "/forno.jpg",
     rating: "4.7",
     completed: "203 shifts completed",
     about:
@@ -70,7 +70,7 @@ const shiftDetails = [
   {
     id: "44444444-4444-4444-8444-444444444444",
     title: "Wait Staff",
-    company: "Butlers",
+    company: "Sophie's Restaurant & Bar",
     type: "Weekend",
     location: "Grafton Street, Dublin",
     address: "Grafton Street, Dublin 2",
@@ -79,8 +79,8 @@ const shiftDetails = [
     total: "€89.40 estimated",
     distance: "2.6 km away",
     tag: "Popular",
-    logo: "/butlers_logo.png",
-    image: "/image_home_1.png",
+    logo: "/sophies.jpg",
+    image: "/sophies.jpg",
     rating: "4.9",
     completed: "171 shifts completed",
     about:
@@ -99,8 +99,8 @@ const shiftDetails = [
     total: "€97.20 estimated",
     distance: "5.4 km away",
     tag: "Featured",
-    logo: "/starbucks_logo.png",
-    image: "/image_home_1.png",
+    logo: "/starbucks.jpg",
+    image: "/starbucks.jpg",
     rating: "4.8",
     completed: "241 shifts completed",
     about:
@@ -119,8 +119,8 @@ const shiftDetails = [
     total: "€123.20 estimated",
     distance: "2.9 km away",
     tag: "Verified",
-    logo: "/maldron_logopng.png",
-    image: "/image_home_1.png",
+    logo: "/maldron.jpg",
+    image: "/maldron.jpg",
     rating: "4.7",
     completed: "188 shifts completed",
     about:
@@ -130,25 +130,39 @@ const shiftDetails = [
 ];
 
 const token = Astro.cookies.get("gigtogo_access_token")?.value;
+const userId = Astro.cookies.get("gigtogo_user_id")?.value;
 const id = Astro.params.id ?? "";
 const notice = Astro.url.searchParams.get("notice");
 const error = Astro.url.searchParams.get("error");
 
 let shift = shiftDetails.find((item) => item.id === id) ?? shiftDetails[0];
+let application: { id: string; status: string; note: string } | null = null;
 
 if (hasSupabaseConfig() && token && id) {
   try {
     const rows = await supabaseFetch(
-      `/rest/v1/shifts?id=eq.${id}&select=id,title,company,location,shift_date,start_time,end_time,pay_rate,shift_type,description,status&limit=1`,
+      `/rest/v1/shifts?id=eq.${id}&select=id,title,company,business_id,location,shift_date,start_time,end_time,pay_rate,shift_type,description,status&limit=1`,
       { token }
     );
     const row = rows?.[0];
 
     if (row) {
+      let companyName = row.company;
+
+      try {
+        const profileRows = await supabaseFetch(
+          `/rest/v1/profiles?id=eq.${row.business_id}&select=full_name&limit=1`,
+          { token }
+        );
+        companyName = profileRows?.[0]?.full_name ?? companyName;
+      } catch {
+        companyName = row.company;
+      }
+
       shift = {
         id: row.id,
         title: row.title,
-        company: row.company,
+        company: companyName,
         type: row.shift_type,
         location: row.location,
         address: row.location,
@@ -157,7 +171,7 @@ if (hasSupabaseConfig() && token && id) {
         total: "Estimated total shown after hours are confirmed",
         distance: "Nearby",
         tag: row.status === "open" ? "Open" : row.status,
-        logo: "/GigToGo_icon.png",
+        logo: "/insomnia.jpg",
         image: "/image_home_1.png",
         rating: "New",
         completed: "Posted on GigToGo",
@@ -168,7 +182,44 @@ if (hasSupabaseConfig() && token && id) {
   } catch {
     shift = shiftDetails.find((item) => item.id === id) ?? shiftDetails[0];
   }
+
+  if (userId) {
+    try {
+      const applicationRows = await supabaseFetch(
+        `/rest/v1/shift_applications?shift_id=eq.${id}&worker_id=eq.${userId}&select=id,status,note&limit=1`,
+        { token }
+      );
+      const applicationRow = applicationRows?.[0];
+
+      if (applicationRow) {
+        application = {
+          id: applicationRow.id,
+          status: applicationRow.status,
+          note: applicationRow.note ?? "",
+        };
+      }
+    } catch {
+      application = null;
+    }
+  }
 }
+
+const applicationStatus = application?.status?.toLowerCase() ?? "";
+const hasActiveApplication = ["pending", "accepted"].includes(applicationStatus);
+const applicationCopy: Record<string, { eyebrow: string; title: string; body: string; button: string }> = {
+  pending: {
+    eyebrow: "Application sent",
+    title: "Waiting for business review",
+    body: "Your application is with the business. They will review your profile and accept it if it is a match.",
+    button: "Cancel application",
+  },
+  accepted: {
+    eyebrow: "Shift accepted",
+    title: "You are booked for this shift",
+    body: "This shift has been accepted by the business and is now connected to your dashboard and next shift timer.",
+    button: "Cancel shift",
+  },
+};
 ---
 
 <Layout title={`${shift.title} at ${shift.company} | GigToGo`}>
@@ -265,20 +316,41 @@ if (hasSupabaseConfig() && token && id) {
         <aside class="worker-profile-panel worker-shift-apply-card" id="apply">
           <div class="worker-profile-panel-head">
             <div>
-              <p>Application</p>
-              <h2>Ready to apply?</h2>
+              <p>{hasActiveApplication ? applicationCopy[applicationStatus].eyebrow : "Application"}</p>
+              <h2>{hasActiveApplication ? applicationCopy[applicationStatus].title : "Review and confirm"}</h2>
             </div>
           </div>
 
           <strong>{shift.pay}</strong>
           <span>{shift.total}</span>
-          <form method="POST" action="/api/shifts/apply" class="worker-shift-apply-form">
-            <input type="hidden" name="shift_id" value={shift.id} />
-            <input type="hidden" name="back_to" value={`/worker/shifts/${shift.id}`} />
-            <textarea name="note" placeholder="Add a short note for the business"></textarea>
-            <button type="submit" class="btn btn-primary">Apply for this shift</button>
-          </form>
-          <button type="button" class="btn btn-secondary">Save shift</button>
+
+          {hasActiveApplication ? (
+            <>
+              <div class:list={["worker-shift-application-status", applicationStatus]}>
+                <i class:list={[applicationStatus === "accepted" ? "fa-solid fa-circle-check" : "fa-regular fa-clock"]}></i>
+                <p>{applicationCopy[applicationStatus].body}</p>
+              </div>
+              <form method="POST" action="/api/applications/cancel" class="worker-shift-apply-form">
+                <input type="hidden" name="application_id" value={application?.id} />
+                <input type="hidden" name="shift_id" value={shift.id} />
+                <input type="hidden" name="back_to" value={`/worker/shifts/${shift.id}`} />
+                <button type="submit" class="btn btn-secondary">{applicationCopy[applicationStatus].button}</button>
+              </form>
+            </>
+          ) : (
+            <>
+              <p class="worker-profile-bio">
+                Confirm your application here. The business will review it and accept it if you are a match.
+              </p>
+              <form method="POST" action="/api/shifts/apply" class="worker-shift-apply-form">
+                <input type="hidden" name="shift_id" value={shift.id} />
+                <input type="hidden" name="back_to" value={`/worker/shifts/${shift.id}`} />
+                <textarea name="note" placeholder="Add a short note for the business"></textarea>
+                <button type="submit" class="btn btn-primary">Apply for this shift</button>
+              </form>
+              <button type="button" class="btn btn-secondary">Save shift</button>
+            </>
+          )}
         </aside>
 
         <article class="worker-profile-panel">

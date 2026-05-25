@@ -22,9 +22,16 @@ let shifts = [
     status: "open",
   },
 ];
+let businessName = "Insomnia Coffee";
 
 if (hasSupabaseConfig() && token && userId) {
   try {
+    const profileRows = await supabaseFetch(
+      `/rest/v1/profiles?id=eq.${userId}&select=full_name&limit=1`,
+      { token }
+    );
+    businessName = profileRows?.[0]?.full_name ?? businessName;
+
     const rows = await supabaseFetch(
       `/rest/v1/shifts?business_id=eq.${userId}&select=id,title,company,location,shift_date,start_time,end_time,pay_rate,status&order=created_at.desc`,
       { token }
@@ -33,7 +40,7 @@ if (hasSupabaseConfig() && token && userId) {
     shifts = rows.map((shift: any) => ({
       id: shift.id,
       title: shift.title,
-      company: shift.company,
+      company: businessName,
       location: shift.location,
       time: `${shift.shift_date} · ${shift.start_time.slice(0, 5)} - ${shift.end_time.slice(0, 5)}`,
       pay: `€${Number(shift.pay_rate).toFixed(2)}/hr`,
@@ -74,7 +81,7 @@ if (hasSupabaseConfig() && token && userId) {
           <article class="worker-shift-card">
             <div class="worker-shift-card-body">
               <div class="worker-shift-company">
-                <img src="/GigToGo_icon.png" alt="" />
+                <img src="/insomnia.jpg" alt="" class="business-shift-logo" />
                 <div>
                   <small>{shift.company}</small>
                   <h3>{shift.title}</h3>
@@ -101,7 +108,7 @@ if (hasSupabaseConfig() && token && userId) {
 
               <div class="worker-shift-actions">
                 <a href="/business/applications" class="btn btn-secondary">Applicants</a>
-                <a href="/business/create-shift" class="btn btn-primary">Post shift</a>
+                <a href={`/business/shifts/edit/${shift.id}`} class="btn btn-primary">Edit</a>
               </div>
             </div>
           </article>

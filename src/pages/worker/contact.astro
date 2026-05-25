@@ -1,0 +1,151 @@
+---
+import Layout from "../../layouts/layout.astro";
+import AppSidebar from "../../components/AppSidebar.astro";
+import WorkerTopActions from "../../components/workerTopActions.astro";
+
+const supportOptions = [
+  {
+    title: "Shift support",
+    detail: "Questions about clock in, cancellations or arrival details.",
+    icon: "fa-regular fa-calendar-check",
+  },
+  {
+    title: "Payments",
+    detail: "Help with payouts, pending payments or bank details.",
+    icon: "fa-regular fa-credit-card",
+  },
+  {
+    title: "Account",
+    detail: "Profile, login, verification and account settings.",
+    icon: "fa-regular fa-user",
+  },
+];
+
+const contactMethods = [
+  {
+    label: "Email",
+    value: "support@gigtogo.com",
+    icon: "fa-regular fa-envelope",
+  },
+  {
+    label: "Phone",
+    value: "+353 89 123 4567",
+    icon: "fa-solid fa-phone",
+  },
+  {
+    label: "Hours",
+    value: "Mon-Fri · 9:00-17:00",
+    icon: "fa-regular fa-clock",
+  },
+];
+---
+
+<Layout title="Contact Us | GigToGo">
+  <main class="worker-ui">
+    <AppSidebar accountType="worker" active="contact" />
+
+    <section class="worker-ui-main worker-contact-page">
+      <header class="worker-ui-topbar">
+        <div class="worker-ui-search">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" placeholder="Search help topics or support messages" />
+        </div>
+
+        <WorkerTopActions active="contact" />
+      </header>
+
+      <div class="worker-ui-breadcrumb">
+        <span>Worker</span>
+        <span>/</span>
+        <strong>Contact Us</strong>
+      </div>
+
+      <section class="worker-contact-hero">
+        <div>
+          <p>Support</p>
+          <h1>Get help with shifts, payments and your account.</h1>
+          <span>Send a message to the GigToGo support team and we will follow up as soon as possible.</span>
+        </div>
+      </section>
+
+      <section class="worker-contact-grid">
+        <article class="worker-profile-panel worker-contact-form-panel">
+          <div class="worker-profile-panel-head">
+            <div>
+              <p>Message</p>
+              <h2>Contact support</h2>
+            </div>
+            <span>Demo form</span>
+          </div>
+
+          <form class="worker-contact-form">
+            <div class="business-form-grid">
+              <label>
+                <span>Name</span>
+                <input type="text" placeholder="Your name" />
+              </label>
+
+              <label>
+                <span>Email</span>
+                <input type="email" placeholder="you@example.com" />
+              </label>
+
+              <label class="business-form-full">
+                <span>Topic</span>
+                <select>
+                  <option>Shift support</option>
+                  <option>Payments</option>
+                  <option>Account</option>
+                  <option>Other</option>
+                </select>
+              </label>
+            </div>
+
+            <label class="business-form-full">
+              <span>Message</span>
+              <textarea rows="6" placeholder="Tell us what happened and include any shift or payment details."></textarea>
+            </label>
+
+            <div class="business-form-actions">
+              <button type="button" class="btn btn-primary">
+                Send message
+                <i class="fa-solid fa-arrow-right"></i>
+              </button>
+            </div>
+          </form>
+        </article>
+
+        <aside class="worker-profile-panel worker-contact-methods">
+          <div class="worker-profile-panel-head">
+            <div>
+              <p>Reach us</p>
+              <h2>Contact details</h2>
+            </div>
+          </div>
+
+          <div class="worker-contact-method-list">
+            {contactMethods.map((method) => (
+              <article>
+                <i class={method.icon}></i>
+                <div>
+                  <strong>{method.label}</strong>
+                  <span>{method.value}</span>
+                </div>
+              </article>
+            ))}
+          </div>
+        </aside>
+
+        <section class="worker-contact-options">
+          {supportOptions.map((option) => (
+            <article class="worker-profile-panel">
+              <i class={option.icon}></i>
+              <strong>{option.title}</strong>
+              <p>{option.detail}</p>
+            </article>
+          ))}
+        </section>
+      </section>
+    </section>
+  </main>
+</Layout>

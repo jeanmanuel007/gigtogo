@@ -2,62 +2,96 @@
 import Layout from "../../layouts/layout.astro";
 import AppSidebar from "../../components/AppSidebar.astro";
 import WorkerTopActions from "../../components/workerTopActions.astro";
+import { hasSupabaseConfig, supabaseFetch } from "../../lib/supabaseServer";
 
-const stats = [
-  {
-    label: "Jobs done",
-    value: "36",
-    detail: "4.9 average rating",
-    icon: "fa-solid fa-briefcase",
-  },
-  {
-    label: "Applied",
-    value: "12",
-    detail: "5 awaiting replies",
-    icon: "fa-regular fa-file-lines",
-  },
-  {
-    label: "Upcoming shifts",
-    value: "4",
-    detail: "Next shift tomorrow",
-    icon: "fa-regular fa-calendar-check",
-  },
-  {
-    label: "Payment to receive",
-    value: "€428",
-    detail: "Expected this week",
-    icon: "fa-solid fa-wallet",
-  },
+export const prerender = false;
+
+const token = Astro.cookies.get("gigtogo_access_token")?.value;
+const userId = Astro.cookies.get("gigtogo_user_id")?.value;
+const emailCookie = Astro.cookies.get("gigtogo_user_email")?.value ?? "";
+const error = Astro.url.searchParams.get("error");
+const notice = Astro.url.searchParams.get("notice");
+
+let profile = {
+  fullName: "Worker Profile",
+  email: emailCookie,
+  phone: "",
+  location: "Dublin, Ireland",
+  headline: "Hospitality worker",
+  bio: "",
+  skills: [] as string[],
+  experience: "",
+  availability: "",
+};
+
+let applicationCount = 0;
+let acceptedCount = 0;
+
+if (hasSupabaseConfig() && !token) {
+  return Astro.redirect("/auth/signin?error=Please sign in to view your profile.");
+}
+
+if (hasSupabaseConfig() && token && userId) {
+  try {
+    const rows = await supabaseFetch(
+      `/rest/v1/profiles?id=eq.${userId}&select=full_name,email,phone,location,headline,bio,skills,experience,availability&limit=1`,
+      { token }
+    );
+    const row = rows?.[0];
+
+    if (row) {
+      profile = {
+        fullName: row.full_name ?? profile.fullName,
+        email: row.email ?? emailCookie,
+        phone: row.phone ?? "",
+        location: row.location ?? "Dublin, Ireland",
+        headline: row.headline ?? "Hospitality worker",
+        bio: row.bio ?? "",
+        skills: Array.isArray(row.skills) ? row.skills : [],
+        experience: row.experience ?? "",
+        availability: row.availability ?? "",
+      };
+    }
+
+    const applications = await supabaseFetch(
+      `/rest/v1/shift_applications?worker_id=eq.${userId}&select=id,status`,
+      { token }
+    );
+    applicationCount = applications.length;
+    acceptedCount = applications.filter((application: any) => application.status === "accepted").length;
+  } catch {
+    try {
+      const rows = await supabaseFetch(
+        `/rest/v1/profiles?id=eq.${userId}&select=full_name,email&limit=1`,
+        { token }
+      );
+      const row = rows?.[0];
+
+      if (row) {
+        profile = {
+          ...profile,
+          fullName: row.full_name ?? profile.fullName,
+          email: row.email ?? emailCookie,
+        };
+      }
+    } catch {
+      // Keep the profile page usable while Supabase fields are being migrated.
+    }
+  }
+}
+
+const skillsText = profile.skills.join(", ");
+const completionItems = [
+  profile.fullName,
+  profile.phone,
+  profile.location,
+  profile.headline,
+  profile.bio,
+  profile.skills.length > 0 ? "skills" : "",
+  profile.experience,
+  profile.availability,
 ];
-
-const upcomingShifts = [
-  {
-    role: "Barista",
-    company: "Insomnia Coffee",
-    time: "Tomorrow · 8:00 AM - 2:00 PM",
-    pay: "€87.00",
-  },
-  {
-    role: "Wait Staff",
-    company: "Butlers",
-    time: "Sat · 12:00 PM - 6:00 PM",
-    pay: "€89.40",
-  },
-  {
-    role: "Front of House",
-    company: "Maldron Hotel",
-    time: "Mon · 9:00 AM - 5:00 PM",
-    pay: "€123.20",
-  },
-];
-
-const jobsDone = [
-  "Kitchen Porter · Travelodge",
-  "Event Security · Luna Events",
-  "Shift Supervisor · Starbucks",
-];
-
-const skills = ["Hospitality", "POS systems", "Food safety", "Customer care", "Event support"];
+const completion = Math.round((completionItems.filter(Boolean).length / completionItems.length) * 100);
 ---
 
 <Layout title="Worker Profile | GigToGo">
@@ -68,17 +102,20 @@ const skills = ["Hospitality", "POS systems", "Food safety", "Customer care", "E
       <header class="worker-ui-topbar">
         <div class="worker-ui-search">
           <i class="fa-solid fa-magnifying-glass"></i>
-          <input type="text" placeholder="Search shifts, payments or applications" />
+          <input type="text" placeholder="Search profile details or applications" />
         </div>
 
-        <WorkerTopActions active="profile" />
+        <WorkerTopActions active="profile" displayName={profile.fullName} />
       </header>
 
       <div class="worker-ui-breadcrumb">
-        <span>Dashboard</span>
+        <span>Worker</span>
         <span>/</span>
         <strong>Profile</strong>
       </div>
+
+      {error && <p class="auth-alert error">{error}</p>}
+      {notice && <p class="auth-alert notice">{notice}</p>}
 
       <section class="worker-profile-hero">
         <img src="/image_home_1.png" alt="Profile cover" />
@@ -86,14 +123,14 @@ const skills = ["Hospitality", "POS systems", "Food safety", "Customer care", "E
 
         <div class="worker-profile-identity">
           <span class="worker-profile-avatar-large">
-            <img src="/image_home_1.png" alt="Mary O'Connor" />
+            <img src="/mary.jpg" alt={profile.fullName} />
           </span>
           <div>
-            <p>Available this week</p>
-            <h1>Mary O'Connor</h1>
-            <span>Hospitality worker · Dublin, Ireland</span>
+            <p>{profile.headline || "Worker profile"}</p>
+            <h1>{profile.fullName}</h1>
+            <span>{profile.location} · {profile.email}</span>
           </div>
-          <a href="#" class="btn btn-primary">
+          <a href="#edit-profile" class="btn btn-primary">
             Edit profile
             <i class="fa-regular fa-pen-to-square"></i>
           </a>
@@ -101,139 +138,75 @@ const skills = ["Hospitality", "POS systems", "Food safety", "Customer care", "E
       </section>
 
       <section class="worker-profile-stats" aria-label="Worker profile summary">
-        {stats.map((item) => (
-          <article>
-            <i class={item.icon}></i>
-            <div>
-              <span>{item.label}</span>
-              <strong>{item.value}</strong>
-              <small>{item.detail}</small>
-            </div>
-          </article>
-        ))}
+        <article>
+          <i class="fa-regular fa-user"></i>
+          <div>
+            <span>Profile</span>
+            <strong>{completion}%</strong>
+            <small>complete</small>
+          </div>
+        </article>
+        <article>
+          <i class="fa-regular fa-file-lines"></i>
+          <div>
+            <span>Applications</span>
+            <strong>{applicationCount}</strong>
+            <small>{acceptedCount} accepted</small>
+          </div>
+        </article>
+        <article>
+          <i class="fa-solid fa-graduation-cap"></i>
+          <div>
+            <span>Skills</span>
+            <strong>{profile.skills.length}</strong>
+            <small>listed on profile</small>
+          </div>
+        </article>
+        <article>
+          <i class="fa-regular fa-calendar-check"></i>
+          <div>
+            <span>Availability</span>
+            <strong>{profile.availability ? "Set" : "Add"}</strong>
+            <small>{profile.availability ? "ready for shifts" : "your schedule"}</small>
+          </div>
+        </article>
       </section>
 
       <section class="worker-profile-grid">
         <article class="worker-profile-panel worker-profile-about">
           <div class="worker-profile-panel-head">
             <div>
-              <p>General information</p>
-              <h2>Profile overview</h2>
+              <p>Overview</p>
+              <h2>Public profile</h2>
             </div>
-            <span>92% complete</span>
+            <span>{completion}% complete</span>
           </div>
 
           <p class="worker-profile-bio">
-            Reliable hospitality worker with strong customer service experience across coffee,
-            hotels and events. Open to morning, weekend and short-notice shifts around Dublin.
+            {profile.bio || "Add a short profile summary so businesses know what kind of work you are looking for."}
           </p>
 
           <div class="worker-profile-info-list">
             <p>
               <i class="fa-solid fa-location-dot"></i>
-              Dublin 7 · willing to travel 8 km
+              {profile.location || "Location not added"}
             </p>
             <p>
               <i class="fa-regular fa-envelope"></i>
-              mary.oconnor@gigtogo.com
+              {profile.email}
             </p>
             <p>
-              <i class="fa-solid fa-graduation-cap"></i>
-              Food safety certified · Manual handling complete
+              <i class="fa-solid fa-phone"></i>
+              {profile.phone || "Phone not added"}
+            </p>
+            <p>
+              <i class="fa-solid fa-briefcase"></i>
+              {profile.experience || "Experience not added"}
             </p>
           </div>
 
           <div class="worker-profile-skill-list" aria-label="Worker skills">
-            {skills.map((skill) => <span>{skill}</span>)}
-          </div>
-        </article>
-
-        <article class="worker-profile-panel worker-profile-payment">
-          <div class="worker-profile-panel-head">
-            <div>
-              <p>Payments</p>
-              <h2>To receive</h2>
-            </div>
-            <span>3 shifts</span>
-          </div>
-
-          <strong>€428.00</strong>
-          <small>Next payout estimated Friday</small>
-          <div class="worker-profile-payment-bar">
-            <span></span>
-          </div>
-          <a href="#" class="btn btn-secondary">View payments</a>
-        </article>
-
-        <article class="worker-profile-panel worker-shift-timer" data-shift-timer>
-          <div class="worker-shift-timer-head">
-            <p>Your shift today</p>
-            <span data-shift-status>Ready to clock in</span>
-          </div>
-
-          <div class="worker-shift-timer-body">
-            <strong data-shift-clock>14:00-22:00</strong>
-            <span>Waitress</span>
-            <small>Insomnia Coffee · Temple Bar</small>
-          </div>
-
-          <div class="worker-shift-timer-actions">
-            <button type="button" class="worker-shift-timer-icon" data-shift-reset aria-label="Reset timer">
-              <i class="fa-solid fa-rotate-left"></i>
-            </button>
-
-            <button type="button" class="worker-shift-timer-toggle" data-shift-toggle>
-              <i class="fa-solid fa-stopwatch"></i>
-              <span>Start</span>
-            </button>
-
-            <button type="button" class="worker-shift-timer-icon" aria-label="Shift timer settings">
-              <i class="fa-solid fa-gear"></i>
-            </button>
-          </div>
-        </article>
-
-        <article class="worker-profile-panel worker-profile-upcoming">
-          <div class="worker-profile-panel-head">
-            <div>
-              <p>Schedule</p>
-              <h2>Upcoming shifts</h2>
-            </div>
-            <a href="/worker/shifts">Browse</a>
-          </div>
-
-          <div class="worker-profile-shift-list">
-            {upcomingShifts.map((shift) => (
-              <div>
-                <span>
-                  <strong>{shift.role}</strong>
-                  <small>{shift.company}</small>
-                </span>
-                <span>
-                  <small>{shift.time}</small>
-                  <strong>{shift.pay}</strong>
-                </span>
-              </div>
-            ))}
-          </div>
-        </article>
-
-        <article class="worker-profile-panel worker-profile-activity">
-          <div class="worker-profile-panel-head">
-            <div>
-              <p>Activity</p>
-              <h2>Recently completed</h2>
-            </div>
-            <span>36 total</span>
-          </div>
-
-          <div class="worker-profile-done-list">
-            {jobsDone.map((job) => (
-              <p>
-                <i class="fa-solid fa-circle-check"></i>
-                {job}
-              </p>
-            ))}
+            {profile.skills.length === 0 ? <span>Add skills below</span> : profile.skills.map((skill) => <span>{skill}</span>)}
           </div>
         </article>
 
@@ -243,82 +216,81 @@ const skills = ["Hospitality", "POS systems", "Food safety", "Customer care", "E
               <p>Preferences</p>
               <h2>Availability</h2>
             </div>
-            <span>Updated today</span>
           </div>
 
-          <div class="worker-profile-days" aria-label="Availability by day">
-            <span>Mon</span>
-            <span class="active">Tue</span>
-            <span class="active">Wed</span>
-            <span>Thu</span>
-            <span class="active">Fri</span>
-            <span class="active">Sat</span>
-            <span>Sun</span>
+          <p class="worker-profile-bio">
+            {profile.availability || "Add when you are usually available for shifts."}
+          </p>
+        </article>
+
+        <article class="worker-profile-panel worker-profile-edit-panel" id="edit-profile">
+          <div class="worker-profile-panel-head">
+            <div>
+              <p>Edit</p>
+              <h2>Profile details</h2>
+            </div>
+            <span>Saved to Supabase</span>
           </div>
+
+          <form method="POST" action="/api/profile/update" class="worker-profile-edit-form">
+            <input type="hidden" name="back_to" value="/worker/profile" />
+            <div class="business-form-grid">
+              <label>
+                <span>Full name</span>
+                <input name="full_name" type="text" value={profile.fullName} required />
+              </label>
+
+              <label>
+                <span>Email</span>
+                <input type="email" value={profile.email} readonly />
+              </label>
+
+              <label>
+                <span>Phone</span>
+                <input name="phone" type="tel" value={profile.phone} placeholder="+353 89 123 4567" />
+              </label>
+
+              <label>
+                <span>Location</span>
+                <input name="location" type="text" value={profile.location} placeholder="Dublin, Ireland" />
+              </label>
+
+              <label class="business-form-full">
+                <span>Headline</span>
+                <input name="headline" type="text" value={profile.headline} placeholder="Hospitality worker, barista, event staff" />
+              </label>
+            </div>
+
+            <label class="business-form-full">
+              <span>Bio</span>
+              <textarea name="bio" rows="4" placeholder="Write a short summary for businesses.">{profile.bio}</textarea>
+            </label>
+
+            <label class="business-form-full">
+              <span>Skills</span>
+              <input name="skills" type="text" value={skillsText} placeholder="Barista, POS, customer service, food safety" />
+            </label>
+
+            <label class="business-form-full">
+              <span>Experience</span>
+              <textarea name="experience" rows="4" placeholder="Describe your previous roles, industries, certificates, and strengths.">{profile.experience}</textarea>
+            </label>
+
+            <label class="business-form-full">
+              <span>Availability</span>
+              <textarea name="availability" rows="3" placeholder="Example: Weekdays after 4pm, weekends, short notice shifts.">{profile.availability}</textarea>
+            </label>
+
+            <div class="business-form-actions">
+              <a href="/worker/dashboard" class="btn btn-secondary">Back to dashboard</a>
+              <button type="submit" class="btn btn-primary">
+                Save profile
+                <i class="fa-solid fa-check"></i>
+              </button>
+            </div>
+          </form>
         </article>
       </section>
     </section>
   </main>
-
-  <script>
-    const timer = document.querySelector("[data-shift-timer]");
-
-    if (timer) {
-      const clock = timer.querySelector("[data-shift-clock]");
-      const status = timer.querySelector("[data-shift-status]");
-      const toggle = timer.querySelector("[data-shift-toggle]");
-      const toggleLabel = toggle?.querySelector("span");
-      const reset = timer.querySelector("[data-shift-reset]");
-      let elapsed = 0;
-      let intervalId;
-
-      const formatElapsed = (totalSeconds) => {
-        const hours = Math.floor(totalSeconds / 3600);
-        const minutes = Math.floor((totalSeconds % 3600) / 60);
-        const seconds = totalSeconds % 60;
-
-        if (hours > 0) {
-          return `${hours}h:${String(minutes).padStart(2, "0")}m:${String(seconds).padStart(2, "0")}s`;
-        }
-
-        return `${minutes}m:${String(seconds).padStart(2, "0")}s`;
-      };
-
-      const render = () => {
-        if (!clock) return;
-        clock.textContent = elapsed > 0 ? formatElapsed(elapsed) : "14:00-22:00";
-      };
-
-      const stopTimer = () => {
-        window.clearInterval(intervalId);
-        intervalId = undefined;
-        timer.classList.remove("is-active");
-        if (status) status.textContent = elapsed > 0 ? "Paused" : "Ready to clock in";
-        if (toggleLabel) toggleLabel.textContent = elapsed > 0 ? "Resume" : "Start";
-      };
-
-      toggle?.addEventListener("click", () => {
-        if (intervalId) {
-          stopTimer();
-          return;
-        }
-
-        timer.classList.add("is-active");
-        if (status) status.textContent = "Clocked in";
-        if (toggleLabel) toggleLabel.textContent = "Stop";
-        elapsed += 1;
-        render();
-        intervalId = window.setInterval(() => {
-          elapsed += 1;
-          render();
-        }, 1000);
-      });
-
-      reset?.addEventListener("click", () => {
-        elapsed = 0;
-        stopTimer();
-        render();
-      });
-    }
-  </script>
 </Layout>

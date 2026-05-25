@@ -1,0 +1,162 @@
+---
+import Layout from "../../../../layouts/layout.astro";
+import AppSidebar from "../../../../components/AppSidebar.astro";
+import WorkerTopActions from "../../../../components/workerTopActions.astro";
+import { hasSupabaseConfig, supabaseFetch } from "../../../../lib/supabaseServer";
+
+export const prerender = false;
+
+const token = Astro.cookies.get("gigtogo_access_token")?.value;
+const userId = Astro.cookies.get("gigtogo_user_id")?.value;
+const id = Astro.params.id ?? "";
+const error = Astro.url.searchParams.get("error");
+const notice = Astro.url.searchParams.get("notice");
+let businessName = "Insomnia Coffee";
+
+let shift = {
+  id,
+  title: "",
+  company: "",
+  location: "",
+  shift_date: "",
+  start_time: "",
+  end_time: "",
+  pay_rate: "",
+  shift_type: "Flexible",
+  status: "open",
+  description: "",
+};
+
+if (hasSupabaseConfig() && !token) {
+  return Astro.redirect("/auth/signin?error=Please sign in to edit your shift.");
+}
+
+if (hasSupabaseConfig() && token && userId && id) {
+  try {
+    const profileRows = await supabaseFetch(
+      `/rest/v1/profiles?id=eq.${userId}&select=full_name&limit=1`,
+      { token }
+    );
+    businessName = profileRows?.[0]?.full_name ?? businessName;
+
+    const rows = await supabaseFetch(
+      `/rest/v1/shifts?id=eq.${id}&business_id=eq.${userId}&select=id,title,company,location,shift_date,start_time,end_time,pay_rate,shift_type,status,description&limit=1`,
+      { token }
+    );
+    const row = rows?.[0];
+
+    if (!row) {
+      return Astro.redirect("/business/shifts?error=Shift not found.");
+    }
+
+    shift = {
+      id: row.id,
+      title: row.title,
+      company: businessName,
+      location: row.location,
+      shift_date: row.shift_date,
+      start_time: row.start_time?.slice(0, 5) ?? "",
+      end_time: row.end_time?.slice(0, 5) ?? "",
+      pay_rate: String(row.pay_rate),
+      shift_type: row.shift_type,
+      status: row.status,
+      description: row.description ?? "",
+    };
+  } catch {
+    return Astro.redirect("/business/shifts?error=Could not load shift.");
+  }
+}
+---
+
+<Layout title={`Edit ${shift.title || "Shift"} | GigToGo`}>
+  <main class="worker-ui">
+    <AppSidebar accountType="business" active="shifts" />
+
+    <section class="worker-ui-main">
+      <header class="worker-ui-topbar">
+        <div>
+          <p class="business-page-kicker">Business tools</p>
+          <h1 class="business-page-title">Edit shift</h1>
+        </div>
+        <WorkerTopActions active="shifts" accountType="business" />
+      </header>
+
+      {error && <p class="auth-alert error">{error}</p>}
+      {notice && <p class="auth-alert notice">{notice}</p>}
+
+      <section class="business-create-panel">
+        <form method="POST" action="/api/shifts/update" class="business-shift-form">
+          <input type="hidden" name="shift_id" value={shift.id} />
+
+          <div class="business-form-grid">
+            <label>
+              <span>Role title</span>
+              <input name="title" type="text" value={shift.title} required />
+            </label>
+
+            <label>
+              <span>Company</span>
+              <input name="company" type="text" value={shift.company} readonly required />
+            </label>
+
+            <label>
+              <span>Location</span>
+              <input name="location" type="text" value={shift.location} required />
+            </label>
+
+            <label>
+              <span>Shift type</span>
+              <select name="shift_type" required>
+                {["Flexible", "Part-time", "Full-time", "Weekend", "Evening"].map((type) => (
+                  <option value={type} selected={shift.shift_type === type}>{type}</option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              <span>Date</span>
+              <input name="shift_date" type="date" value={shift.shift_date} required />
+            </label>
+
+            <label>
+              <span>Start time</span>
+              <input name="start_time" type="time" value={shift.start_time} required />
+            </label>
+
+            <label>
+              <span>End time</span>
+              <input name="end_time" type="time" value={shift.end_time} required />
+            </label>
+
+            <label>
+              <span>Hourly pay</span>
+              <input name="pay_rate" type="number" min="0" step="0.01" value={shift.pay_rate} required />
+            </label>
+
+            <label class="business-form-full">
+              <span>Status</span>
+              <select name="status" required>
+                {["open", "assigned", "completed", "cancelled"].map((status) => (
+                  <option value={status} selected={shift.status === status}>{status}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <label class="business-form-full">
+            <span>Description</span>
+            <textarea name="description">{shift.description}</textarea>
+          </label>
+
+          <div class="business-form-actions">
+            <a href="/business/shifts" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary">
+              Save changes
+              <i class="fa-solid fa-check"></i>
+            </button>
+          </div>
+        </form>
+      </section>
+    </section>
+  </main>
+</Layout>

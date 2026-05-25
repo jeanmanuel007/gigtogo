@@ -1,0 +1,195 @@
+---
+import Layout from "../../layouts/layout.astro";
+import AppSidebar from "../../components/AppSidebar.astro";
+import WorkerTopActions from "../../components/workerTopActions.astro";
+
+const paymentSummary = [
+  {
+    label: "Available balance",
+    value: "€428.00",
+    detail: "Ready for next payout",
+    icon: "fa-solid fa-wallet",
+  },
+  {
+    label: "Pending approval",
+    value: "€212.40",
+    detail: "2 shifts being reviewed",
+    icon: "fa-regular fa-clock",
+  },
+  {
+    label: "Paid this month",
+    value: "€1,284.60",
+    detail: "Across 9 completed shifts",
+    icon: "fa-solid fa-arrow-trend-up",
+  },
+];
+
+const transactions = [
+  {
+    company: "Insomnia Coffee",
+    role: "Barista",
+    date: "May 22, 2026",
+    hours: "6h",
+    rate: "€14.50/hr",
+    amount: "€87.00",
+    status: "Ready",
+  },
+  {
+    company: "Butlers",
+    role: "Wait Staff",
+    date: "May 20, 2026",
+    hours: "6h",
+    rate: "€14.90/hr",
+    amount: "€89.40",
+    status: "Pending",
+  },
+  {
+    company: "Travelodge",
+    role: "Kitchen Porter",
+    date: "May 18, 2026",
+    hours: "8h",
+    rate: "€15.80/hr",
+    amount: "€126.40",
+    status: "Paid",
+  },
+  {
+    company: "Starbucks",
+    role: "Shift Supervisor",
+    date: "May 15, 2026",
+    hours: "6h",
+    rate: "€16.20/hr",
+    amount: "€97.20",
+    status: "Paid",
+  },
+];
+
+const payoutMethods = [
+  {
+    title: "Bank transfer",
+    detail: "IBAN ending 2841",
+    status: "Primary",
+    icon: "fa-solid fa-building-columns",
+  },
+  {
+    title: "Weekly payout",
+    detail: "Every Friday morning",
+    status: "Active",
+    icon: "fa-regular fa-calendar-check",
+  },
+];
+---
+
+<Layout title="Worker Payments | GigToGo">
+  <main class="worker-ui">
+    <AppSidebar accountType="worker" active="payments" />
+
+    <section class="worker-ui-main worker-payments-page">
+      <header class="worker-ui-topbar">
+        <div class="worker-ui-search">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" placeholder="Search payments, shifts or companies" />
+        </div>
+
+        <WorkerTopActions active="payments" />
+      </header>
+
+      <div class="worker-ui-breadcrumb">
+        <span>Worker</span>
+        <span>/</span>
+        <strong>Payments</strong>
+      </div>
+
+      <section class="worker-payments-hero">
+        <div>
+          <p>Payments demo</p>
+          <h1>Track earnings, payouts and shift payments.</h1>
+          <span>Review completed shifts, pending approvals and upcoming payout details.</span>
+        </div>
+        <button type="button" class="btn btn-primary">
+          Request payout
+          <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </section>
+
+      <section class="worker-dashboard-stats" aria-label="Payment summary">
+        {paymentSummary.map((item) => (
+          <article>
+            <i class={item.icon}></i>
+            <strong>{item.value}</strong>
+            <span>{item.label}</span>
+            <small>{item.detail}</small>
+          </article>
+        ))}
+      </section>
+
+      <section class="worker-payments-grid">
+        <article class="worker-profile-panel worker-payments-ledger">
+          <div class="worker-profile-panel-head">
+            <div>
+              <p>Activity</p>
+              <h2>Recent payments</h2>
+            </div>
+            <span>Demo</span>
+          </div>
+
+          <div class="worker-payments-table">
+            {transactions.map((payment) => (
+              <div class="worker-payment-row">
+                <span>
+                  <strong>{payment.company}</strong>
+                  <small>{payment.role} · {payment.date}</small>
+                </span>
+                <span>
+                  <strong>{payment.hours}</strong>
+                  <small>{payment.rate}</small>
+                </span>
+                <span>
+                  <strong>{payment.amount}</strong>
+                  <small class:list={["worker-payment-status", payment.status.toLowerCase()]}>{payment.status}</small>
+                </span>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <aside class="worker-profile-panel worker-payments-methods">
+          <div class="worker-profile-panel-head">
+            <div>
+              <p>Payout</p>
+              <h2>Settings</h2>
+            </div>
+          </div>
+
+          <div class="worker-payments-method-list">
+            {payoutMethods.map((method) => (
+              <article>
+                <i class={method.icon}></i>
+                <div>
+                  <strong>{method.title}</strong>
+                  <span>{method.detail}</span>
+                </div>
+                <small>{method.status}</small>
+              </article>
+            ))}
+          </div>
+
+          <a href="/worker/profile" class="btn btn-secondary">Edit payment profile</a>
+        </aside>
+
+        <article class="worker-profile-panel worker-payments-note">
+          <div class="worker-profile-panel-head">
+            <div>
+              <p>Next payout</p>
+              <h2>Friday estimate</h2>
+            </div>
+            <span>€428.00</span>
+          </div>
+          <p>
+            Approved shifts are grouped into a weekly payout. Pending shifts move into the balance
+            after the business confirms hours.
+          </p>
+        </article>
+      </section>
+    </section>
+  </main>
+</Layout>

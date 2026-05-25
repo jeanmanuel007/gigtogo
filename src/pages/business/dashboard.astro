@@ -2,6 +2,14 @@
 import Layout from "../../layouts/layout.astro";
 import AppSidebar from "../../components/AppSidebar.astro";
 import WorkerTopActions from "../../components/workerTopActions.astro";
+import { hasSupabaseConfig, supabaseFetch } from "../../lib/supabaseServer";
+
+export const prerender = false;
+
+const token = Astro.cookies.get("gigtogo_access_token")?.value;
+const userId = Astro.cookies.get("gigtogo_user_id")?.value;
+
+let businessName = "Insomnia Coffee";
 
 const activeShifts = [
   {
@@ -50,6 +58,18 @@ const applicants = [
     avatar: "A",
   },
 ];
+
+if (hasSupabaseConfig() && token && userId) {
+  try {
+    const rows = await supabaseFetch(
+      `/rest/v1/profiles?id=eq.${userId}&select=full_name&limit=1`,
+      { token }
+    );
+    businessName = rows?.[0]?.full_name ?? businessName;
+  } catch {
+    businessName = "Insomnia Coffee";
+  }
+}
 ---
 
 <Layout title="Business Dashboard | GigToGo">
@@ -75,7 +95,7 @@ const applicants = [
       <section class="business-dashboard-hero">
         <div>
           <p>Business dashboard</p>
-          <h1>Manage shifts, applicants and staffing needs.</h1>
+          <h1>Hi, {businessName}</h1>
           <span>Post urgent shifts, review candidates, and keep every role moving from one place.</span>
           <div class="business-dashboard-hero-actions">
             <a href="/business/create-shift" class="btn btn-primary">
