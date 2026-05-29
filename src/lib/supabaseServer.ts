@@ -1,8 +1,8 @@
 import type { APIContext } from "astro";
 
 const supabaseUrl = import.meta.env.SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.SUPABASE_ANON_KEY;
-const supabaseServiceRoleKey = import.meta.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabasePublishableKey = import.meta.env.SUPABASE_PUBLISHABLE_KEY ?? import.meta.env.SUPABASE_ANON_KEY;
+const supabaseSecretKey = import.meta.env.SUPABASE_SECRET_KEY ?? import.meta.env.SUPABASE_SERVICE_ROLE_KEY;
 const profileImageBucket = "profile-images";
 
 const cookieOptions = {
@@ -27,11 +27,11 @@ export type CurrentUser = {
 };
 
 export function hasSupabaseConfig() {
-  return Boolean(supabaseUrl && supabaseAnonKey);
+  return Boolean(supabaseUrl && supabasePublishableKey);
 }
 
 export function missingSupabaseResponse() {
-  return new Response("Supabase is not configured. Add SUPABASE_URL and SUPABASE_ANON_KEY to .env.", {
+  return new Response("Supabase is not configured. Add SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY to .env.", {
     status: 500,
   });
 }
@@ -41,17 +41,20 @@ export async function supabaseFetch(path: string, options: SupabaseFetchOptions 
     throw new Error("Missing Supabase environment variables.");
   }
 
-  if (options.serviceRole && !supabaseServiceRoleKey) {
-    throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY in .env.");
+  if (options.serviceRole && !supabaseSecretKey) {
+    throw new Error("Missing SUPABASE_SECRET_KEY in .env.");
   }
 
-  const apiKey = options.serviceRole ? supabaseServiceRoleKey : supabaseAnonKey;
-  const authToken = options.serviceRole ? supabaseServiceRoleKey : options.token ?? supabaseAnonKey;
+  const apiKey = options.serviceRole ? supabaseSecretKey : supabasePublishableKey;
+  const authToken = options.serviceRole ? supabaseSecretKey : options.token;
 
   const headers = new Headers({
     apikey: apiKey,
-    Authorization: `Bearer ${authToken}`,
   });
+
+  if (authToken) {
+    headers.set("Authorization", `Bearer ${authToken}`);
+  }
 
   if (options.body !== undefined) {
     headers.set("Content-Type", "application/json");
@@ -79,15 +82,15 @@ export async function supabaseFetch(path: string, options: SupabaseFetchOptions 
 }
 
 async function createProfileImageBucket() {
-  if (!supabaseServiceRoleKey) {
-    throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY in .env.");
+  if (!supabaseSecretKey) {
+    throw new Error("Missing SUPABASE_SECRET_KEY in .env.");
   }
 
   const response = await fetch(`${supabaseUrl}/storage/v1/bucket`, {
     method: "POST",
     headers: {
-      apikey: supabaseServiceRoleKey,
-      Authorization: `Bearer ${supabaseServiceRoleKey}`,
+      apikey: supabaseSecretKey,
+      Authorization: `Bearer ${supabaseSecretKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
@@ -108,7 +111,7 @@ async function createProfileImageBucket() {
 }
 
 export async function uploadProfileImage(userId: string, file: File) {
-  if (!supabaseUrl || !supabaseServiceRoleKey) {
+  if (!supabaseUrl || !supabaseSecretKey) {
     throw new Error("Supabase image upload is not configured.");
   }
 
@@ -121,8 +124,8 @@ export async function uploadProfileImage(userId: string, file: File) {
   const response = await fetch(`${supabaseUrl}/storage/v1/object/${profileImageBucket}/${imagePath}`, {
     method: "PUT",
     headers: {
-      apikey: supabaseServiceRoleKey,
-      Authorization: `Bearer ${supabaseServiceRoleKey}`,
+      apikey: supabaseSecretKey,
+      Authorization: `Bearer ${supabaseSecretKey}`,
       "Content-Type": file.type || "application/octet-stream",
       "x-upsert": "true",
     },
