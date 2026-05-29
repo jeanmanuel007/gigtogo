@@ -1,0 +1,33 @@
+---
+import Layout from "../../layouts/layout.astro";
+
+const hasError = Astro.url.searchParams.has("error") || Astro.url.searchParams.has("error_code");
+const rawMessage =
+  Astro.url.searchParams.get("error_description") ||
+  Astro.url.searchParams.get("message") ||
+  (hasError ? "This email link is invalid or expired." : "Email confirmed. You can sign in now.");
+
+const title = hasError ? "Email link problem" : "Email confirmed";
+const message = rawMessage.replace(/\+/g, " ");
+const alertClass = hasError ? "auth-alert error" : "auth-alert notice";
+const buttonText = hasError ? "Go back home" : "Go to login";
+const buttonHref = hasError ? "/" : "/auth/signin";
+---
+
+<Layout title="Auth Message | GigToGo">
+  <main class="auth-page">
+    <section class="auth-shell">
+      <a href="/" class="auth-home-logo">
+        <img src="/GigToGo_logo.svg" alt="GigToGo" class="auth-logo-img" />
+      </a>
+
+      <div class="auth-panel auth-form-panel">
+        <div class="auth-form-inner">
+          <h1>{title}</h1>
+          <p class={alertClass}>{message}</p>
+          <a href={buttonHref} class="btn auth-submit">{buttonText}</a>
+        </div>
+      </div>
+    </section>
+  </main>
+</Layout>

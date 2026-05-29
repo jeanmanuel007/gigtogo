@@ -2,6 +2,7 @@
 import Layout from "../../layouts/layout.astro";
 import AppSidebar from "../../components/AppSidebar.astro";
 import WorkerTopActions from "../../components/workerTopActions.astro";
+import { getProfileImage } from "../../lib/profileImages";
 import { hasSupabaseConfig, supabaseFetch } from "../../lib/supabaseServer";
 
 export const prerender = false;
@@ -14,105 +15,12 @@ let profile = {
   fullName: "Worker",
   headline: "Hospitality worker",
   location: "Dublin, Ireland",
+  image: getProfileImage(),
 };
 
-let availableShifts = [
-  {
-    id: "demo-1",
-    role: "Barista",
-    company: "Insomnia Coffee",
-    location: "Talbot Street",
-    pay: "€14.50/hr",
-    time: "Today · 2:00 PM - 8:00 PM",
-    logo: "/insomnia.jpg",
-  },
-  {
-    id: "demo-2",
-    role: "Wait Staff",
-    company: "Butlers",
-    location: "Grafton Street",
-    pay: "€14.90/hr",
-    time: "Sat · 12:00 PM - 6:00 PM",
-    logo: "/butlers.jpg",
-  },
-  {
-    id: "demo-3",
-    role: "Front of House",
-    company: "Maldron Hotel",
-    location: "Smithfield",
-    pay: "€15.40/hr",
-    time: "Mon · 9:00 AM - 5:00 PM",
-    logo: "/maldron.jpg",
-  },
-];
-
-let nextShifts = [
-  {
-    id: "demo-next-1",
-    role: "Waitress",
-    company: "Insomnia Coffee",
-    location: "Temple Bar",
-    date: "Today",
-    time: "14:00 - 22:00",
-    pay: "€14.50/hr",
-  },
-  {
-    id: "demo-next-2",
-    role: "Event Staff",
-    company: "Luna Events",
-    location: "Dublin City Centre",
-    date: "Tomorrow",
-    time: "18:00 - 00:00",
-    pay: "€17.00/hr",
-  },
-];
-
-let completed = [
-  {
-    company: "Travelodge",
-    role: "Kitchen Porter",
-    hours: "8 hours completed",
-    status: "Payment pending",
-    logo: "/travelodge_logo.png",
-  },
-  {
-    company: "Starbucks",
-    role: "Shift Supervisor",
-    hours: "6 hours completed",
-    status: "Paid",
-    logo: "/starbucks.jpg",
-  },
-];
-
-const availableShiftSuggestions = [
-  {
-    id: "11111111-1111-4111-8111-111111111111",
-    role: "Barista",
-    company: "Butlers Chocolate Café",
-    location: "Stoneybatter, Dublin",
-    pay: "€14.50/hr",
-    time: "Today · 2:00 PM - 8:00 PM",
-    logo: "/butlers.jpg",
-  },
-  {
-    id: "22222222-2222-4222-8222-222222222222",
-    role: "Event Security",
-    company: "Penneys",
-    location: "O'Connell Street, Dublin",
-    pay: "€17.00/hr",
-    time: "Tomorrow · 6:00 PM - 12:00 AM",
-    logo: "/penneys.jpg",
-  },
-  {
-    id: "33333333-3333-4333-8333-333333333333",
-    role: "Kitchen Porter",
-    company: "Forno 500",
-    location: "Dame Street, Dublin",
-    pay: "€15.80/hr",
-    time: "Fri · 7:00 AM - 3:00 PM",
-    logo: "/forno.jpg",
-  },
-];
+let availableShifts: Array<any> = [];
+let nextShifts: Array<any> = [];
+let completed: Array<any> = [];
 
 const quickActions = [
   {
@@ -153,6 +61,7 @@ const mapShift = (shift: any) => ({
   date: shift.shift_date,
   time: `${shift.start_time.slice(0, 5)} - ${shift.end_time.slice(0, 5)}`,
   pay: `€${Number(shift.pay_rate).toFixed(2)}/hr`,
+  logo: shift.logo,
 });
 
 if (hasSupabaseConfig() && !token) {
@@ -166,7 +75,7 @@ if (hasSupabaseConfig() && token && userId) {
 
   try {
     const profileRows = await supabaseFetch(
-      `/rest/v1/profiles?id=eq.${userId}&select=full_name,headline,location&limit=1`,
+      `/rest/v1/profiles?id=eq.${userId}&select=full_name,headline,location,profile_image_path&limit=1`,
       { token }
     );
     const profileRow = profileRows?.[0];
@@ -176,6 +85,7 @@ if (hasSupabaseConfig() && token && userId) {
         fullName: profileRow.full_name ?? "Worker",
         headline: profileRow.headline ?? "Hospitality worker",
         location: profileRow.location ?? "Dublin, Ireland",
+        image: getProfileImage(profileRow.profile_image_path),
       };
     }
   } catch {
@@ -205,15 +115,17 @@ if (hasSupabaseConfig() && token && userId) {
 
     const businessIds = Array.from(new Set(shiftRows.map((shift: any) => shift.business_id).filter(Boolean)));
     const businessNames = new Map();
+    const businessLogos = new Map();
 
     if (businessIds.length > 0) {
       const profileRows = await supabaseFetch(
-        `/rest/v1/profiles?id=in.(${businessIds.join(",")})&select=id,full_name`,
+        `/rest/v1/profiles?id=in.(${businessIds.join(",")})&select=id,full_name,profile_image_path`,
         { token }
       );
 
       for (const profile of profileRows) {
         businessNames.set(profile.id, profile.full_name);
+        businessLogos.set(profile.id, profile.profile_image_path);
       }
     }
 
@@ -224,7 +136,7 @@ if (hasSupabaseConfig() && token && userId) {
       location: shift.location,
       pay: `€${Number(shift.pay_rate).toFixed(2)}/hr`,
       time: `${shift.shift_date} · ${shift.start_time.slice(0, 5)} - ${shift.end_time.slice(0, 5)}`,
-      logo: "/insomnia.jpg",
+      logo: getProfileImage(businessLogos.get(shift.business_id)),
     }));
   } catch {
     availableShifts = [];
@@ -240,15 +152,17 @@ if (hasSupabaseConfig() && token && userId) {
       new Set(applicationRows.map((application: any) => application.shifts?.business_id).filter(Boolean))
     );
     const acceptedBusinessNames = new Map();
+    const acceptedBusinessLogos = new Map();
 
     if (acceptedBusinessIds.length > 0) {
       const profileRows = await supabaseFetch(
-        `/rest/v1/profiles?id=in.(${acceptedBusinessIds.join(",")})&select=id,full_name`,
+        `/rest/v1/profiles?id=in.(${acceptedBusinessIds.join(",")})&select=id,full_name,profile_image_path`,
         { token }
       );
 
       for (const profile of profileRows) {
         acceptedBusinessNames.set(profile.id, profile.full_name);
+        acceptedBusinessLogos.set(profile.id, profile.profile_image_path);
       }
     }
 
@@ -270,6 +184,7 @@ if (hasSupabaseConfig() && token && userId) {
           ...application.shifts,
           id: application.shift_id,
           company: acceptedBusinessNames.get(application.shifts.business_id) ?? application.shifts.company,
+          logo: getProfileImage(acceptedBusinessLogos.get(application.shifts.business_id)),
         })
       );
 
@@ -290,7 +205,7 @@ if (hasSupabaseConfig() && token && userId) {
         role: shift.role,
         hours: `${shift.date} · ${shift.time}`,
         status: "Accepted",
-        logo: "/insomnia.jpg",
+        logo: shift.logo,
       }));
 
     acceptedCount = Math.max(acceptedCount, nextShifts.length);
@@ -301,15 +216,6 @@ if (hasSupabaseConfig() && token && userId) {
 }
 
 const currentShift = nextShifts[0];
-const suggestedShift = availableShifts[0] ?? {
-  id: "11111111-1111-4111-8111-111111111111",
-  role: "Barista",
-  company: "Insomnia Coffee",
-  location: "Stoneybatter, Dublin",
-  pay: "€14.50/hr",
-  time: "Today · 14:00 - 20:00",
-  logo: "/insomnia.jpg",
-};
 ---
 
 <Layout title="Worker Dashboard | GigToGo">
@@ -323,7 +229,7 @@ const suggestedShift = availableShifts[0] ?? {
           <input type="text" placeholder="Search shifts, companies or messages" />
         </div>
 
-        <WorkerTopActions active="dashboard" displayName={profile.fullName} />
+        <WorkerTopActions active="dashboard" displayName={profile.fullName} avatarImage={profile.image} />
       </header>
 
       <div class="worker-ui-breadcrumb">
@@ -386,7 +292,7 @@ const suggestedShift = availableShifts[0] ?? {
             <div class="worker-dashboard-next-list">
               {nextShifts.map((shift, index) => (
                 <a href={`/worker/shifts/${shift.id}`} class:list={[index === 0 && "is-primary"]}>
-                  <img src="/insomnia.jpg" alt="" />
+                  <img src={shift.logo} alt="" />
                   <div class="worker-dashboard-next-copy">
                     <small>{shift.company}</small>
                     <strong>{shift.role}</strong>
@@ -414,7 +320,7 @@ const suggestedShift = availableShifts[0] ?? {
             </div>
 
             <div class="worker-dashboard-mini-shift-list">
-              {availableShiftSuggestions.map((shift) => (
+              {availableShifts.slice(0, 3).map((shift) => (
                 <article>
                   <img src={shift.logo} alt="" />
                   <div>
@@ -427,6 +333,9 @@ const suggestedShift = availableShifts[0] ?? {
                   <a href={`/worker/shifts/${shift.id}#apply`} class="btn btn-primary">Apply</a>
                 </article>
               ))}
+              {availableShifts.length === 0 && (
+                <p class="worker-profile-bio">Open shifts will appear here when businesses post them.</p>
+              )}
             </div>
           </div>
         </article>
@@ -441,7 +350,7 @@ const suggestedShift = availableShifts[0] ?? {
           </div>
 
           <div class="worker-dashboard-shift-cards">
-            {availableShifts.slice(1, 4).map((shift) => (
+            {availableShifts.slice(3, 6).map((shift) => (
               <a href={`/worker/shifts/${shift.id}`} class="worker-dashboard-shift-card">
                 <img src={shift.logo} alt="" />
                 <div>
@@ -452,16 +361,8 @@ const suggestedShift = availableShifts[0] ?? {
                 <em>{shift.pay}</em>
               </a>
             ))}
-            {availableShifts.length <= 1 && (
-              <a href={`/worker/shifts/${suggestedShift.id}`} class="worker-dashboard-shift-card">
-                <img src={suggestedShift.logo} alt="" />
-                <div>
-                  <strong>{suggestedShift.role}</strong>
-                  <span>{suggestedShift.company}</span>
-                  <small>{suggestedShift.location} · {suggestedShift.time}</small>
-                </div>
-                <em>{suggestedShift.pay}</em>
-              </a>
+            {availableShifts.length <= 3 && (
+              <p class="worker-profile-bio">No extra recommendations yet. Check the shift board for updates.</p>
             )}
           </div>
         </article>
@@ -472,7 +373,7 @@ const suggestedShift = availableShifts[0] ?? {
               <p>Recently completed</p>
               <h2>Finished work</h2>
             </div>
-            <span>2 pending</span>
+            <span>{completed.length} shown</span>
           </div>
 
           <div class="worker-dashboard-completed-grid">
@@ -484,6 +385,9 @@ const suggestedShift = availableShifts[0] ?? {
                 <small>{job.status}</small>
               </article>
             ))}
+            {completed.length === 0 && (
+              <p class="worker-profile-bio">Finished shifts will appear here after your accepted work is completed.</p>
+            )}
           </div>
         </article>
         </div>

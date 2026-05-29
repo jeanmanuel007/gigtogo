@@ -2,6 +2,7 @@
 import Layout from "../../layouts/layout.astro";
 import AppSidebar from "../../components/AppSidebar.astro";
 import WorkerTopActions from "../../components/workerTopActions.astro";
+import { getProfileImage } from "../../lib/profileImages";
 import { hasSupabaseConfig, supabaseFetch } from "../../lib/supabaseServer";
 
 export const prerender = false;
@@ -11,26 +12,22 @@ const userId = Astro.cookies.get("gigtogo_user_id")?.value;
 const notice = Astro.url.searchParams.get("notice");
 const error = Astro.url.searchParams.get("error");
 
-let shifts = [
-  {
-    id: "demo",
-    title: "Barista",
-    company: "Liberties Coffee",
-    location: "Smithfield, Dublin",
-    time: "Today · 2:00 PM - 8:00 PM",
-    pay: "€14.50/hr",
-    status: "open",
-  },
-];
-let businessName = "Insomnia Coffee";
+let shifts: Array<any> = [];
+let businessName = "Business";
+let businessLogo = getProfileImage();
+
+if (hasSupabaseConfig() && !token) {
+  return Astro.redirect("/auth/signin?error=Please sign in to view your shifts.");
+}
 
 if (hasSupabaseConfig() && token && userId) {
   try {
     const profileRows = await supabaseFetch(
-      `/rest/v1/profiles?id=eq.${userId}&select=full_name&limit=1`,
+      `/rest/v1/profiles?id=eq.${userId}&select=full_name,profile_image_path&limit=1`,
       { token }
     );
     businessName = profileRows?.[0]?.full_name ?? businessName;
+    businessLogo = getProfileImage(profileRows?.[0]?.profile_image_path);
 
     const rows = await supabaseFetch(
       `/rest/v1/shifts?business_id=eq.${userId}&select=id,title,company,location,shift_date,start_time,end_time,pay_rate,status&order=created_at.desc`,
@@ -47,7 +44,7 @@ if (hasSupabaseConfig() && token && userId) {
       status: shift.status,
     }));
   } catch {
-    // Keep fallback content visible while Supabase is being configured.
+    shifts = [];
   }
 }
 ---
@@ -62,7 +59,7 @@ if (hasSupabaseConfig() && token && userId) {
           <p class="business-page-kicker">Business tools</p>
           <h1 class="business-page-title">Your posted shifts</h1>
         </div>
-        <WorkerTopActions active="shifts" accountType="business" />
+        <WorkerTopActions active="shifts" accountType="business" avatarImage={businessLogo} />
       </header>
 
       {error && <p class="auth-alert error">{error}</p>}
@@ -76,12 +73,26 @@ if (hasSupabaseConfig() && token && userId) {
         <a href="/business/create-shift" class="btn btn-primary">Post another shift</a>
       </div>
 
-      <section class="worker-ui-card-grid">
-        {shifts.map((shift) => (
+      {shifts.length === 0 ? (
+        <section class="worker-profile-panel">
+          <div class="worker-profile-panel-head">
+            <div>
+              <p>No shifts posted</p>
+              <h2>Create your first shift</h2>
+            </div>
+          </div>
+          <p class="worker-profile-bio">
+            Posted shifts will appear here after you create them.
+          </p>
+          <a href="/business/create-shift" class="btn btn-primary">Post a shift</a>
+        </section>
+      ) : (
+        <section class="worker-ui-card-grid">
+          {shifts.map((shift) => (
           <article class="worker-shift-card">
             <div class="worker-shift-card-body">
               <div class="worker-shift-company">
-                <img src="/insomnia.jpg" alt="" class="business-shift-logo" />
+                <img src={businessLogo} alt="" class="business-shift-logo" />
                 <div>
                   <small>{shift.company}</small>
                   <h3>{shift.title}</h3>
@@ -112,8 +123,9 @@ if (hasSupabaseConfig() && token && userId) {
               </div>
             </div>
           </article>
-        ))}
-      </section>
+          ))}
+        </section>
+      )}
     </section>
   </main>
 </Layout>

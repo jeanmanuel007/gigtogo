@@ -2,6 +2,7 @@
 import Layout from "../../../../layouts/layout.astro";
 import AppSidebar from "../../../../components/AppSidebar.astro";
 import WorkerTopActions from "../../../../components/workerTopActions.astro";
+import { getProfileImage } from "../../../../lib/profileImages";
 import { hasSupabaseConfig, supabaseFetch } from "../../../../lib/supabaseServer";
 
 export const prerender = false;
@@ -11,7 +12,8 @@ const userId = Astro.cookies.get("gigtogo_user_id")?.value;
 const id = Astro.params.id ?? "";
 const error = Astro.url.searchParams.get("error");
 const notice = Astro.url.searchParams.get("notice");
-let businessName = "Insomnia Coffee";
+let businessName = "Business";
+let businessImage = getProfileImage();
 
 let shift = {
   id,
@@ -34,10 +36,11 @@ if (hasSupabaseConfig() && !token) {
 if (hasSupabaseConfig() && token && userId && id) {
   try {
     const profileRows = await supabaseFetch(
-      `/rest/v1/profiles?id=eq.${userId}&select=full_name&limit=1`,
+      `/rest/v1/profiles?id=eq.${userId}&select=full_name,profile_image_path&limit=1`,
       { token }
     );
     businessName = profileRows?.[0]?.full_name ?? businessName;
+    businessImage = getProfileImage(profileRows?.[0]?.profile_image_path);
 
     const rows = await supabaseFetch(
       `/rest/v1/shifts?id=eq.${id}&business_id=eq.${userId}&select=id,title,company,location,shift_date,start_time,end_time,pay_rate,shift_type,status,description&limit=1`,
@@ -78,7 +81,7 @@ if (hasSupabaseConfig() && token && userId && id) {
           <p class="business-page-kicker">Business tools</p>
           <h1 class="business-page-title">Edit shift</h1>
         </div>
-        <WorkerTopActions active="shifts" accountType="business" />
+        <WorkerTopActions active="shifts" accountType="business" avatarImage={businessImage} />
       </header>
 
       {error && <p class="auth-alert error">{error}</p>}

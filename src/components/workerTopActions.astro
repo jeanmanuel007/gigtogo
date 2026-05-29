@@ -1,5 +1,5 @@
 ---
-const { active = "profile", accountType = "worker", displayName } = Astro.props;
+const { active = "profile", accountType = "worker", displayName, avatarImage: savedAvatarImage } = Astro.props;
 
 const isBusiness = accountType === "business";
 const menuUser = displayName ?? (isBusiness ? "Business Account" : "Worker Account");
@@ -10,10 +10,12 @@ const applicationsHref = isBusiness ? "/business/applications" : "/worker/applic
 const shiftsHref = isBusiness ? "/business/shifts" : "/worker/shifts";
 const primaryActionHref = isBusiness ? "/business/applications" : "/worker/shifts";
 const primaryActionLabel = isBusiness ? "Review" : "Apply";
-const avatarImage = isBusiness ? "/insomnia.jpg" : "/mary.jpg";
+const defaultAvatarImage = "/GigToGo_logo.svg";
+const avatarImage = savedAvatarImage ?? defaultAvatarImage;
+const isDefaultAvatar = !savedAvatarImage;
 ---
 
-<div class="worker-ui-top-actions">
+<div class:list={["worker-ui-top-actions", isBusiness && "is-business", isDefaultAvatar && "has-default-avatar"]}>
   <details class="worker-ui-popover worker-ui-messages-menu">
     <summary class="worker-ui-icon-btn" aria-label="Open messages">
       <i class="fa-regular fa-message"></i>
@@ -22,7 +24,7 @@ const avatarImage = isBusiness ? "/insomnia.jpg" : "/mary.jpg";
 
     <div class="worker-ui-dropdown worker-ui-message-dropdown">
       <div class="worker-ui-dropdown-head centered">
-        <h3>Messages <span>82</span></h3>
+        <h3>Messages <span>3</span></h3>
       </div>
 
       <div class="worker-ui-dropdown-tabs">
@@ -35,8 +37,8 @@ const avatarImage = isBusiness ? "/insomnia.jpg" : "/mary.jpg";
         <a href="#" class="unread">
           <span class="worker-ui-message-avatar">MA</span>
           <div>
-            <strong>Maria Ayala</strong>
-            <p>Thank you for all your help with this last minute shift!</p>
+            <strong>New message</strong>
+            <p>A worker sent an update about a shift.</p>
           </div>
           <small>2:14 PM</small>
         </a>
@@ -44,17 +46,17 @@ const avatarImage = isBusiness ? "/insomnia.jpg" : "/mary.jpg";
         <a href="#">
           <span class="worker-ui-message-avatar hotel">MH</span>
           <div>
-            <strong>Maldron Hotels</strong>
-            <p>You: We regret to inform you that...</p>
+            <strong>Application update</strong>
+            <p>A posted shift has a new application.</p>
           </div>
           <small>2:14 PM</small>
         </a>
 
         <a href="#">
-          <span class="worker-ui-message-avatar coffee">CG</span>
+          <span class="worker-ui-message-avatar coffee">F5</span>
           <div>
-            <strong>Coffee The Stranger Group</strong>
-            <p>@Majo: Hmm, are you sure?</p>
+            <strong>Shift update</strong>
+            <p>Shift details were updated recently.</p>
           </div>
           <small>10:16 PM</small>
         </a>
@@ -96,9 +98,9 @@ const avatarImage = isBusiness ? "/insomnia.jpg" : "/mary.jpg";
 
       <div class="worker-ui-notification-list">
         <article class="highlight">
-          <span class="worker-ui-notification-avatar">AB</span>
+          <span class="worker-ui-notification-avatar">IC</span>
           <div>
-            <p><strong>Arling Boutique</strong> has sent you a message request.</p>
+            <p><strong>New message</strong> from a business account.</p>
             <div class="worker-ui-notification-actions">
               <button type="button">Accept</button>
               <button type="button">Decline</button>
@@ -108,10 +110,10 @@ const avatarImage = isBusiness ? "/insomnia.jpg" : "/mary.jpg";
         </article>
 
         <article>
-          <span class="worker-ui-notification-avatar photo">P</span>
+          <span class="worker-ui-notification-avatar photo">RM</span>
           <div>
-            <p><strong>Patrick</strong> added a review on your Profile</p>
-            <blockquote>She was perfect, professional and efficient.</blockquote>
+            <p><strong>Application update</strong></p>
+            <blockquote>A worker updated their availability.</blockquote>
           </div>
           <small>8h</small>
         </article>
@@ -122,7 +124,7 @@ const avatarImage = isBusiness ? "/insomnia.jpg" : "/mary.jpg";
           </span>
           <div>
             <p><strong>New Alert!</strong></p>
-            <p>The deadline for the waitress vacancy at Temple Bar is approaching.</p>
+            <p>The next open shift needs a worker response.</p>
             <a href={primaryActionHref} class="btn btn-primary">{primaryActionLabel}</a>
           </div>
           <small>14h</small>

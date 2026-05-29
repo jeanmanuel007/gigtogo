@@ -11,6 +11,7 @@ create table public.profiles (
   location text,
   headline text,
   bio text,
+  profile_image_path text,
   skills text[] not null default '{}',
   experience text,
   availability text,

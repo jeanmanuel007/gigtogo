@@ -2,6 +2,26 @@
 import Layout from "../../layouts/layout.astro";
 import AppSidebar from "../../components/AppSidebar.astro";
 import WorkerTopActions from "../../components/workerTopActions.astro";
+import { getProfileImage } from "../../lib/profileImages";
+import { hasSupabaseConfig, supabaseFetch } from "../../lib/supabaseServer";
+
+export const prerender = false;
+
+const token = Astro.cookies.get("gigtogo_access_token")?.value;
+const userId = Astro.cookies.get("gigtogo_user_id")?.value;
+let workerImage = getProfileImage();
+
+if (hasSupabaseConfig() && token && userId) {
+  try {
+    const rows = await supabaseFetch(
+      `/rest/v1/profiles?id=eq.${userId}&select=profile_image_path&limit=1`,
+      { token }
+    );
+    workerImage = getProfileImage(rows?.[0]?.profile_image_path);
+  } catch {
+    workerImage = getProfileImage();
+  }
+}
 
 const paymentSummary = [
   {
@@ -35,30 +55,30 @@ const transactions = [
     status: "Ready",
   },
   {
-    company: "Butlers",
-    role: "Wait Staff",
-    date: "May 20, 2026",
-    hours: "6h",
-    rate: "€14.90/hr",
-    amount: "€89.40",
-    status: "Pending",
-  },
-  {
-    company: "Travelodge",
+    company: "Forno 500",
     role: "Kitchen Porter",
-    date: "May 18, 2026",
+    date: "May 20, 2026",
     hours: "8h",
     rate: "€15.80/hr",
     amount: "€126.40",
+    status: "Pending",
+  },
+  {
+    company: "Maldron Hotel",
+    role: "Front of House",
+    date: "May 18, 2026",
+    hours: "8h",
+    rate: "€15.40/hr",
+    amount: "€123.20",
     status: "Paid",
   },
   {
-    company: "Starbucks",
-    role: "Shift Supervisor",
+    company: "Insomnia Coffee",
+    role: "Barista",
     date: "May 15, 2026",
     hours: "6h",
-    rate: "€16.20/hr",
-    amount: "€97.20",
+    rate: "€14.50/hr",
+    amount: "€87.00",
     status: "Paid",
   },
 ];
@@ -90,7 +110,7 @@ const payoutMethods = [
           <input type="text" placeholder="Search payments, shifts or companies" />
         </div>
 
-        <WorkerTopActions active="payments" />
+        <WorkerTopActions active="payments" avatarImage={workerImage} />
       </header>
 
       <div class="worker-ui-breadcrumb">
@@ -101,7 +121,7 @@ const payoutMethods = [
 
       <section class="worker-payments-hero">
         <div>
-          <p>Payments demo</p>
+          <p>Payments</p>
           <h1>Track earnings, payouts and shift payments.</h1>
           <span>Review completed shifts, pending approvals and upcoming payout details.</span>
         </div>
@@ -129,7 +149,7 @@ const payoutMethods = [
               <p>Activity</p>
               <h2>Recent payments</h2>
             </div>
-            <span>Demo</span>
+            <span>Recent</span>
           </div>
 
           <div class="worker-payments-table">

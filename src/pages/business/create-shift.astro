@@ -2,6 +2,7 @@
 import Layout from "../../layouts/layout.astro";
 import AppSidebar from "../../components/AppSidebar.astro";
 import WorkerTopActions from "../../components/workerTopActions.astro";
+import { getProfileImage } from "../../lib/profileImages";
 import { hasSupabaseConfig, supabaseFetch } from "../../lib/supabaseServer";
 
 export const prerender = false;
@@ -11,17 +12,20 @@ const notice = Astro.url.searchParams.get("notice");
 const token = Astro.cookies.get("gigtogo_access_token")?.value;
 const userId = Astro.cookies.get("gigtogo_user_id")?.value;
 
-let businessName = "Insomnia Coffee";
+let businessName = "Business";
+let businessImage = getProfileImage();
 
 if (hasSupabaseConfig() && token && userId) {
   try {
     const rows = await supabaseFetch(
-      `/rest/v1/profiles?id=eq.${userId}&select=full_name&limit=1`,
+      `/rest/v1/profiles?id=eq.${userId}&select=full_name,profile_image_path&limit=1`,
       { token }
     );
     businessName = rows?.[0]?.full_name ?? businessName;
+    businessImage = getProfileImage(rows?.[0]?.profile_image_path);
   } catch {
-    businessName = "Insomnia Coffee";
+    businessName = "Business";
+    businessImage = getProfileImage();
   }
 }
 ---
@@ -36,7 +40,7 @@ if (hasSupabaseConfig() && token && userId) {
           <p class="business-page-kicker">Business tools</p>
           <h1 class="business-page-title">Post a new shift</h1>
         </div>
-        <WorkerTopActions active="shifts" accountType="business" />
+        <WorkerTopActions active="shifts" accountType="business" avatarImage={businessImage} />
       </header>
 
       {error && <p class="auth-alert error">{error}</p>}

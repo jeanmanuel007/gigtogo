@@ -2,6 +2,7 @@
 import Layout from "../../layouts/layout.astro";
 import AppSidebar from "../../components/AppSidebar.astro";
 import WorkerTopActions from "../../components/workerTopActions.astro";
+import { getProfileImage } from "../../lib/profileImages";
 import { hasSupabaseConfig, supabaseFetch } from "../../lib/supabaseServer";
 
 export const prerender = false;
@@ -18,20 +19,8 @@ const statusLabels: Record<string, string> = {
   cancelled: "Cancelled",
 };
 
-let applications = [
-  {
-    id: "demo",
-    shiftId: "demo",
-    title: "Barista",
-    company: "Liberties Coffee",
-    location: "Smithfield, Dublin",
-    time: "Today · 14:00 - 20:00",
-    pay: "€14.50/hr",
-    status: "Demo application",
-    rawStatus: "demo",
-    note: "Connect Supabase to see your real applications.",
-  },
-];
+let applications: Array<any> = [];
+let workerImage = getProfileImage();
 
 if (hasSupabaseConfig() && !token) {
   return Astro.redirect("/auth/signin?error=Please sign in to view your applications.");
@@ -39,6 +28,12 @@ if (hasSupabaseConfig() && !token) {
 
 if (hasSupabaseConfig() && token && userId) {
   try {
+    const workerRows = await supabaseFetch(
+      `/rest/v1/profiles?id=eq.${userId}&select=profile_image_path&limit=1`,
+      { token }
+    );
+    workerImage = getProfileImage(workerRows?.[0]?.profile_image_path);
+
     const rows = await supabaseFetch(
       `/rest/v1/shift_applications?worker_id=eq.${userId}&select=id,status,note,created_at,shift_id,shifts(title,company,business_id,location,shift_date,start_time,end_time,pay_rate)&order=created_at.desc`,
       { token }
@@ -48,32 +43,39 @@ if (hasSupabaseConfig() && token && userId) {
       new Set(rows.map((row: any) => row.shifts?.business_id).filter(Boolean))
     );
     const businessNames = new Map();
+    const businessLogos = new Map();
 
     if (businessIds.length > 0) {
       const profiles = await supabaseFetch(
-        `/rest/v1/profiles?id=in.(${businessIds.join(",")})&select=id,full_name`,
+        `/rest/v1/profiles?id=in.(${businessIds.join(",")})&select=id,full_name,profile_image_path`,
         { token }
       );
 
       for (const profile of profiles) {
         businessNames.set(profile.id, profile.full_name);
+        businessLogos.set(profile.id, profile.profile_image_path);
       }
     }
 
-    applications = rows.map((row: any) => ({
-      id: row.id,
-      shiftId: row.shift_id,
-      title: row.shifts?.title ?? "Shift",
-      company: businessNames.get(row.shifts?.business_id) ?? row.shifts?.company ?? "Business",
-      location: row.shifts?.location ?? "Location pending",
-      time: row.shifts
-        ? `${row.shifts.shift_date} · ${row.shifts.start_time.slice(0, 5)} - ${row.shifts.end_time.slice(0, 5)}`
-        : "Time pending",
-      pay: row.shifts ? `€${Number(row.shifts.pay_rate).toFixed(2)}/hr` : "Pay pending",
-      status: statusLabels[row.status] ?? row.status,
-      rawStatus: row.status,
-      note: row.note || "No message added.",
-    }));
+    applications = rows.map((row: any) => {
+      const company = businessNames.get(row.shifts?.business_id) ?? row.shifts?.company ?? "Business";
+
+      return {
+        id: row.id,
+        shiftId: row.shift_id,
+        title: row.shifts?.title ?? "Shift",
+        company,
+        logo: getProfileImage(businessLogos.get(row.shifts?.business_id)),
+        location: row.shifts?.location ?? "Location pending",
+        time: row.shifts
+          ? `${row.shifts.shift_date} · ${row.shifts.start_time.slice(0, 5)} - ${row.shifts.end_time.slice(0, 5)}`
+          : "Time pending",
+        pay: row.shifts ? `€${Number(row.shifts.pay_rate).toFixed(2)}/hr` : "Pay pending",
+        status: statusLabels[row.status] ?? row.status,
+        rawStatus: row.status,
+        note: row.note || "No message added.",
+      };
+    });
   } catch {
     applications = [];
   }
@@ -91,7 +93,7 @@ if (hasSupabaseConfig() && token && userId) {
           <input type="text" placeholder="Search applications, companies or locations" />
         </div>
 
-        <WorkerTopActions active="applications" />
+        <WorkerTopActions active="applications" avatarImage={workerImage} />
       </header>
 
       <div class="worker-ui-breadcrumb">
@@ -130,7 +132,7 @@ if (hasSupabaseConfig() && token && userId) {
             <article class="worker-shift-card">
               <div class="worker-shift-card-body">
                 <div class="worker-shift-company">
-                  <img src="/insomnia.jpg" alt="" class="business-shift-logo" />
+                  <img src={application.logo} alt="" class="business-shift-logo" />
                   <div>
                     <small>{application.company}</small>
                     <h3>{application.title}</h3>

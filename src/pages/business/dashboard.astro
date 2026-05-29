@@ -2,6 +2,7 @@
 import Layout from "../../layouts/layout.astro";
 import AppSidebar from "../../components/AppSidebar.astro";
 import WorkerTopActions from "../../components/workerTopActions.astro";
+import { getCoverImage, getProfileImage } from "../../lib/profileImages";
 import { hasSupabaseConfig, supabaseFetch } from "../../lib/supabaseServer";
 
 export const prerender = false;
@@ -9,65 +10,91 @@ export const prerender = false;
 const token = Astro.cookies.get("gigtogo_access_token")?.value;
 const userId = Astro.cookies.get("gigtogo_user_id")?.value;
 
-let businessName = "Insomnia Coffee";
+let businessName = "Business";
+let businessImage = getProfileImage();
+let coverImage = getCoverImage();
+let activeShifts: Array<any> = [];
+let applicants: Array<any> = [];
+let acceptedCount = 0;
+let pendingCount = 0;
 
-const activeShifts = [
-  {
-    title: "Barista",
-    location: "Smithfield, Dublin",
-    time: "Today · 2:00 PM - 8:00 PM",
-    applicants: 8,
-    status: "Open",
-  },
-  {
-    title: "Wait Staff",
-    location: "Temple Bar, Dublin",
-    time: "Tomorrow · 5:00 PM - 11:00 PM",
-    applicants: 12,
-    status: "Reviewing",
-  },
-  {
-    title: "Kitchen Porter",
-    location: "Docklands, Dublin",
-    time: "Fri · 7:00 AM - 3:00 PM",
-    applicants: 5,
-    status: "Open",
-  },
-];
-
-const applicants = [
-  {
-    name: "Rose Murphy",
-    role: "Barista",
-    rating: "4.9",
-    status: "New",
-    avatar: "R",
-  },
-  {
-    name: "Daniel O'Brien",
-    role: "Wait Staff",
-    rating: "4.7",
-    status: "Available",
-    avatar: "D",
-  },
-  {
-    name: "Aoife Kelly",
-    role: "Kitchen Porter",
-    rating: "5.0",
-    status: "Top rated",
-    avatar: "A",
-  },
-];
+if (hasSupabaseConfig() && !token) {
+  return Astro.redirect("/auth/signin?error=Please sign in to view your dashboard.");
+}
 
 if (hasSupabaseConfig() && token && userId) {
   try {
     const rows = await supabaseFetch(
-      `/rest/v1/profiles?id=eq.${userId}&select=full_name&limit=1`,
+      `/rest/v1/profiles?id=eq.${userId}&select=full_name,profile_image_path&limit=1`,
       { token }
     );
     businessName = rows?.[0]?.full_name ?? businessName;
+    businessImage = getProfileImage(rows?.[0]?.profile_image_path);
   } catch {
-    businessName = "Insomnia Coffee";
+    businessName = "Business";
+    businessImage = getProfileImage();
+  }
+
+  try {
+    const shiftRows = await supabaseFetch(
+      `/rest/v1/shifts?business_id=eq.${userId}&select=id,title,location,shift_date,start_time,end_time,status&order=created_at.desc&limit=5`,
+      { token }
+    );
+    const shiftIds = shiftRows.map((shift: any) => shift.id);
+    const applicationRows = shiftIds.length
+      ? await supabaseFetch(
+          `/rest/v1/shift_applications?shift_id=in.(${shiftIds.join(",")})&select=id,status,shift_id,worker_id&order=created_at.desc`,
+          { token }
+        )
+      : [];
+    const workerIds = Array.from(
+      new Set(applicationRows.map((application: any) => application.worker_id).filter(Boolean))
+    );
+    const workerNames = new Map();
+
+    if (workerIds.length > 0) {
+      const workerRows = await supabaseFetch(
+        `/rest/v1/profiles?id=in.(${workerIds.join(",")})&select=id,full_name`,
+        { token }
+      );
+
+      for (const worker of workerRows) {
+        workerNames.set(worker.id, worker.full_name);
+      }
+    }
+
+    const applicantCount = new Map();
+
+    for (const application of applicationRows) {
+      const count = applicantCount.get(application.shift_id) ?? 0;
+      applicantCount.set(application.shift_id, count + 1);
+
+      if (application.status === "accepted") acceptedCount += 1;
+      if (application.status === "pending") pendingCount += 1;
+    }
+
+    activeShifts = shiftRows.map((shift: any) => ({
+      id: shift.id,
+      title: shift.title,
+      location: shift.location,
+      time: `${shift.shift_date} · ${shift.start_time.slice(0, 5)} - ${shift.end_time.slice(0, 5)}`,
+      applicants: applicantCount.get(shift.id) ?? 0,
+      status: shift.status,
+    }));
+
+    applicants = applicationRows.slice(0, 3).map((application: any) => {
+      const name = workerNames.get(application.worker_id) ?? "Worker";
+
+      return {
+        name,
+        role: activeShifts.find((shift) => shift.id === application.shift_id)?.title ?? "Shift applicant",
+        status: application.status,
+        avatar: name.slice(0, 1).toUpperCase(),
+      };
+    });
+  } catch {
+    activeShifts = [];
+    applicants = [];
   }
 }
 ---
@@ -83,7 +110,7 @@ if (hasSupabaseConfig() && token && userId) {
           <input type="text" placeholder="Search shifts, applicants or messages" />
         </div>
 
-        <WorkerTopActions active="dashboard" accountType="business" />
+        <WorkerTopActions active="dashboard" accountType="business" avatarImage={businessImage} />
       </header>
 
       <div class="worker-ui-breadcrumb">
@@ -92,7 +119,7 @@ if (hasSupabaseConfig() && token && userId) {
         <strong>Dashboard</strong>
       </div>
 
-      <section class="business-dashboard-hero">
+      <section class="business-dashboard-hero" style={`--business-cover: url("${coverImage}")`}>
         <div>
           <p>Business dashboard</p>
           <h1>Hi, {businessName}</h1>
@@ -110,23 +137,23 @@ if (hasSupabaseConfig() && token && userId) {
       <section class="worker-dashboard-stats" aria-label="Business dashboard summary">
         <article>
           <i class="fa-regular fa-calendar"></i>
-          <strong>18</strong>
+          <strong>{activeShifts.length}</strong>
           <span>Active shifts</span>
         </article>
         <article>
           <i class="fa-regular fa-file-lines"></i>
-          <strong>42</strong>
+          <strong>{pendingCount}</strong>
           <span>Applicants</span>
         </article>
         <article>
           <i class="fa-solid fa-user-check"></i>
-          <strong>9</strong>
+          <strong>{acceptedCount}</strong>
           <span>Accepted</span>
         </article>
         <article>
           <i class="fa-solid fa-bolt"></i>
-          <strong>6</strong>
-          <span>Urgent roles</span>
+          <strong>{activeShifts.filter((shift) => shift.status === "open").length}</strong>
+          <span>Open roles</span>
         </article>
       </section>
 
@@ -151,6 +178,9 @@ if (hasSupabaseConfig() && token && userId) {
                 <em>{shift.applicants} applicants</em>
               </a>
             ))}
+            {activeShifts.length === 0 && (
+              <p class="worker-profile-bio">Your posted shifts will appear here.</p>
+            )}
           </div>
         </article>
 
@@ -171,12 +201,11 @@ if (hasSupabaseConfig() && token && userId) {
                   <strong>{applicant.name}</strong>
                   <small>{applicant.role} · {applicant.status}</small>
                 </div>
-                <em>
-                  <i class="fa-solid fa-star"></i>
-                  {applicant.rating}
-                </em>
               </a>
             ))}
+            {applicants.length === 0 && (
+              <p class="worker-profile-bio">New applications will appear here.</p>
+            )}
           </div>
         </article>
 
@@ -217,7 +246,7 @@ if (hasSupabaseConfig() && token && userId) {
           </div>
 
           <p>
-            Three roles are close to full coverage. Review high-rated applicants first to confirm staffing before peak hours.
+            Review new applications and keep your open shifts up to date.
           </p>
         </article>
       </section>

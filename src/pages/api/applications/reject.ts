@@ -24,7 +24,6 @@ export const POST: APIRoute = async (context) => {
   const applicationId = String(form.get("application_id") ?? "").trim();
   const shiftId = String(form.get("shift_id") ?? "").trim();
   const workerId = String(form.get("worker_id") ?? "").trim();
-  const intent = String(form.get("intent") ?? "reject").trim();
 
   if (!applicationId) {
     return redirectWithMessage("/business/applications", "error", "Missing application details.");
@@ -42,13 +41,12 @@ export const POST: APIRoute = async (context) => {
     }
 
     const wasAccepted = String(application.status ?? "").toLowerCase() === "accepted";
-    const nextStatus = intent === "cancel" || wasAccepted ? "cancelled" : "rejected";
 
     await supabaseFetch(`/rest/v1/shift_applications?id=eq.${applicationId}`, {
       method: "PATCH",
       token,
       prefer: "return=minimal",
-      body: { status: nextStatus },
+      body: { status: "rejected" },
     });
 
     if (wasAccepted) {
@@ -72,7 +70,7 @@ export const POST: APIRoute = async (context) => {
     return redirectWithMessage(
       "/business/applications",
       "notice",
-      nextStatus === "cancelled" ? "Application cancelled and shift reopened." : "Application rejected."
+      "Application rejected."
     );
   } catch (error) {
     return redirectWithMessage(

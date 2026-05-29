@@ -12,6 +12,22 @@ const { title = "GigToGo", showFooter = true } = Astro.props;
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
+    <script is:inline>
+      const hashParams = new URLSearchParams(window.location.hash.slice(1));
+      const pageParams = new URLSearchParams(window.location.search);
+      const params = hashParams.toString() ? hashParams : pageParams;
+      const authLink =
+        params.has("error") ||
+        params.has("error_code") ||
+        params.has("message") ||
+        params.has("access_token") ||
+        params.has("type") ||
+        (window.location.pathname === "/" && params.has("code"));
+
+      if (window.location.pathname !== "/auth/callback" && authLink) {
+        window.location.replace(`/auth/callback?${params.toString()}`);
+      }
+    </script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

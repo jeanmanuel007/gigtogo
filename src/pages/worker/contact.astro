@@ -2,6 +2,26 @@
 import Layout from "../../layouts/layout.astro";
 import AppSidebar from "../../components/AppSidebar.astro";
 import WorkerTopActions from "../../components/workerTopActions.astro";
+import { getProfileImage } from "../../lib/profileImages";
+import { hasSupabaseConfig, supabaseFetch } from "../../lib/supabaseServer";
+
+export const prerender = false;
+
+const token = Astro.cookies.get("gigtogo_access_token")?.value;
+const userId = Astro.cookies.get("gigtogo_user_id")?.value;
+let workerImage = getProfileImage();
+
+if (hasSupabaseConfig() && token && userId) {
+  try {
+    const rows = await supabaseFetch(
+      `/rest/v1/profiles?id=eq.${userId}&select=profile_image_path&limit=1`,
+      { token }
+    );
+    workerImage = getProfileImage(rows?.[0]?.profile_image_path);
+  } catch {
+    workerImage = getProfileImage();
+  }
+}
 
 const supportOptions = [
   {
@@ -51,7 +71,7 @@ const contactMethods = [
           <input type="text" placeholder="Search help topics or support messages" />
         </div>
 
-        <WorkerTopActions active="contact" />
+        <WorkerTopActions active="contact" avatarImage={workerImage} />
       </header>
 
       <div class="worker-ui-breadcrumb">

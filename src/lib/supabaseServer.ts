@@ -2,6 +2,8 @@ import type { APIContext } from "astro";
 
 const supabaseUrl = import.meta.env.SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.SUPABASE_ANON_KEY;
+const supabaseServiceRoleKey = import.meta.env.SUPABASE_SERVICE_ROLE_KEY;
+const profileImageBucket = "profile-images";
 
 const cookieOptions = {
   httpOnly: true,
@@ -15,6 +17,7 @@ type SupabaseFetchOptions = {
   token?: string;
   body?: unknown;
   prefer?: string;
+  serviceRole?: boolean;
 };
 
 export type CurrentUser = {
@@ -38,9 +41,16 @@ export async function supabaseFetch(path: string, options: SupabaseFetchOptions 
     throw new Error("Missing Supabase environment variables.");
   }
 
+  if (options.serviceRole && !supabaseServiceRoleKey) {
+    throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY in .env.");
+  }
+
+  const apiKey = options.serviceRole ? supabaseServiceRoleKey : supabaseAnonKey;
+  const authToken = options.serviceRole ? supabaseServiceRoleKey : options.token ?? supabaseAnonKey;
+
   const headers = new Headers({
-    apikey: supabaseAnonKey,
-    Authorization: `Bearer ${options.token ?? supabaseAnonKey}`,
+    apikey: apiKey,
+    Authorization: `Bearer ${authToken}`,
   });
 
   if (options.body !== undefined) {
@@ -68,6 +78,65 @@ export async function supabaseFetch(path: string, options: SupabaseFetchOptions 
   return data;
 }
 
+async function createProfileImageBucket() {
+  if (!supabaseServiceRoleKey) {
+    throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY in .env.");
+  }
+
+  const response = await fetch(`${supabaseUrl}/storage/v1/bucket`, {
+    method: "POST",
+    headers: {
+      apikey: supabaseServiceRoleKey,
+      Authorization: `Bearer ${supabaseServiceRoleKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      id: profileImageBucket,
+      name: profileImageBucket,
+      public: true,
+    }),
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    const message = data?.message ?? "";
+
+    if (response.status !== 409 && !message.toLowerCase().includes("already exists")) {
+      throw new Error(message || "Could not create profile image bucket.");
+    }
+  }
+}
+
+export async function uploadProfileImage(userId: string, file: File) {
+  if (!supabaseUrl || !supabaseServiceRoleKey) {
+    throw new Error("Supabase image upload is not configured.");
+  }
+
+  await createProfileImageBucket();
+
+  const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const safeExtension = extension.replace(/[^a-z0-9]/g, "") || "jpg";
+  const imagePath = `${userId}/profile.${safeExtension}`;
+
+  const response = await fetch(`${supabaseUrl}/storage/v1/object/${profileImageBucket}/${imagePath}`, {
+    method: "PUT",
+    headers: {
+      apikey: supabaseServiceRoleKey,
+      Authorization: `Bearer ${supabaseServiceRoleKey}`,
+      "Content-Type": file.type || "application/octet-stream",
+      "x-upsert": "true",
+    },
+    body: file,
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    throw new Error(data?.message ?? "Could not upload profile image.");
+  }
+
+  return `${supabaseUrl}/storage/v1/object/public/${profileImageBucket}/${imagePath}`;
+}
+
 export function setAuthCookies(context: APIContext, session: any, role = "worker") {
   const maxAge = session.expires_in ?? 60 * 60 * 24 * 7;
 
@@ -91,6 +160,13 @@ export function setAuthCookies(context: APIContext, session: any, role = "worker
     ...cookieOptions,
     httpOnly: false,
     maxAge,
+  });
+}
+
+export function setUserEmailCookie(context: APIContext, email: string) {
+  context.cookies.set("gigtogo_user_email", email, {
+    ...cookieOptions,
+    maxAge: 60 * 60 * 24 * 7,
   });
 }
 

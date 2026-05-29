@@ -5,7 +5,9 @@ import {
   hasSupabaseConfig,
   missingSupabaseResponse,
   redirectWithMessage,
+  setUserEmailCookie,
   supabaseFetch,
+  uploadProfileImage,
 } from "../../../lib/supabaseServer";
 
 const missingColumnPattern = /Could not find the '([^']+)' column/;
@@ -27,6 +29,9 @@ export const POST: APIRoute = async (context) => {
   const backToValue = String(form.get("back_to") ?? defaultBackTo);
   const backTo = backToValue.startsWith("/") ? backToValue : defaultBackTo;
   const fullName = String(form.get("full_name") ?? "").trim();
+  const email = String(form.get("email") ?? user.email).trim();
+  const newPassword = String(form.get("new_password") ?? "").trim();
+  const profileImage = form.get("profile_image");
   const phone = String(form.get("phone") ?? "").trim();
   const location = String(form.get("location") ?? "").trim();
   const headline = String(form.get("headline") ?? "").trim();
@@ -42,8 +47,25 @@ export const POST: APIRoute = async (context) => {
     return redirectWithMessage(backTo, "error", "Please enter your name.");
   }
 
+  if (!email) {
+    return redirectWithMessage(backTo, "error", "Please enter your email.");
+  }
+
+  if (newPassword && newPassword.length < 6) {
+    return redirectWithMessage(backTo, "error", "Password must be at least 6 characters.");
+  }
+
+  if (profileImage instanceof File && profileImage.size > 0 && !profileImage.type.startsWith("image/")) {
+    return redirectWithMessage(backTo, "error", "Please upload an image file.");
+  }
+
+  if (profileImage instanceof File && profileImage.size > 3 * 1024 * 1024) {
+    return redirectWithMessage(backTo, "error", "Profile image must be smaller than 3MB.");
+  }
+
   const body: Record<string, unknown> = {
     full_name: fullName,
+    email,
     phone,
     location,
     headline,
@@ -54,6 +76,35 @@ export const POST: APIRoute = async (context) => {
   };
 
   try {
+    if (profileImage instanceof File && profileImage.size > 0) {
+      body.profile_image_path = await uploadProfileImage(user.id, profileImage);
+    }
+
+    const emailChanged = email.toLowerCase() !== user.email.toLowerCase();
+
+    if (emailChanged || newPassword) {
+      const authBody: Record<string, string | boolean> = {};
+
+      if (emailChanged) {
+        authBody.email = email;
+        authBody.email_confirm = true;
+      }
+
+      if (newPassword) {
+        authBody.password = newPassword;
+      }
+
+      await supabaseFetch(`/auth/v1/admin/users/${user.id}`, {
+        method: "PUT",
+        serviceRole: true,
+        body: authBody,
+      });
+
+      if (emailChanged) {
+        setUserEmailCookie(context, email);
+      }
+    }
+
     const missingColumns = new Set<string>();
 
     for (let attempt = 0; attempt < 8; attempt += 1) {
@@ -81,7 +132,7 @@ export const POST: APIRoute = async (context) => {
       return redirectWithMessage(
         backTo,
         "notice",
-        "Basic profile updated. Run supabase-profile-fields.sql in Supabase to save all profile fields."
+        "Profile updated. Some extra details will save after the profile fields are added in Supabase."
       );
     }
 

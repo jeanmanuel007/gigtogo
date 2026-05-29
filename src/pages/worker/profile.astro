@@ -2,6 +2,7 @@
 import Layout from "../../layouts/layout.astro";
 import AppSidebar from "../../components/AppSidebar.astro";
 import WorkerTopActions from "../../components/workerTopActions.astro";
+import { getProfileImage } from "../../lib/profileImages";
 import { hasSupabaseConfig, supabaseFetch } from "../../lib/supabaseServer";
 
 export const prerender = false;
@@ -11,6 +12,7 @@ const userId = Astro.cookies.get("gigtogo_user_id")?.value;
 const emailCookie = Astro.cookies.get("gigtogo_user_email")?.value ?? "";
 const error = Astro.url.searchParams.get("error");
 const notice = Astro.url.searchParams.get("notice");
+const defaultWorkerImage = getProfileImage();
 
 let profile = {
   fullName: "Worker Profile",
@@ -22,6 +24,7 @@ let profile = {
   skills: [] as string[],
   experience: "",
   availability: "",
+  image: defaultWorkerImage,
 };
 
 let applicationCount = 0;
@@ -34,7 +37,7 @@ if (hasSupabaseConfig() && !token) {
 if (hasSupabaseConfig() && token && userId) {
   try {
     const rows = await supabaseFetch(
-      `/rest/v1/profiles?id=eq.${userId}&select=full_name,email,phone,location,headline,bio,skills,experience,availability&limit=1`,
+      `/rest/v1/profiles?id=eq.${userId}&select=full_name,email,phone,location,headline,bio,skills,experience,availability,profile_image_path&limit=1`,
       { token }
     );
     const row = rows?.[0];
@@ -50,6 +53,7 @@ if (hasSupabaseConfig() && token && userId) {
         skills: Array.isArray(row.skills) ? row.skills : [],
         experience: row.experience ?? "",
         availability: row.availability ?? "",
+        image: getProfileImage(row.profile_image_path),
       };
     }
 
@@ -105,7 +109,7 @@ const completion = Math.round((completionItems.filter(Boolean).length / completi
           <input type="text" placeholder="Search profile details or applications" />
         </div>
 
-        <WorkerTopActions active="profile" displayName={profile.fullName} />
+        <WorkerTopActions active="profile" displayName={profile.fullName} avatarImage={profile.image} />
       </header>
 
       <div class="worker-ui-breadcrumb">
@@ -122,8 +126,8 @@ const completion = Math.round((completionItems.filter(Boolean).length / completi
         <div class="worker-profile-hero-overlay"></div>
 
         <div class="worker-profile-identity">
-          <span class="worker-profile-avatar-large">
-            <img src="/mary.jpg" alt={profile.fullName} />
+          <span class:list={["worker-profile-avatar-large", profile.image === defaultWorkerImage && "default-logo-avatar"]}>
+            <img src={profile.image} alt={profile.fullName} />
           </span>
           <div>
             <p>{profile.headline || "Worker profile"}</p>
@@ -232,7 +236,7 @@ const completion = Math.round((completionItems.filter(Boolean).length / completi
             <span>Saved to Supabase</span>
           </div>
 
-          <form method="POST" action="/api/profile/update" class="worker-profile-edit-form">
+          <form method="POST" action="/api/profile/update" class="worker-profile-edit-form" enctype="multipart/form-data">
             <input type="hidden" name="back_to" value="/worker/profile" />
             <div class="business-form-grid">
               <label>
@@ -242,7 +246,7 @@ const completion = Math.round((completionItems.filter(Boolean).length / completi
 
               <label>
                 <span>Email</span>
-                <input type="email" value={profile.email} readonly />
+                <input name="email" type="email" value={profile.email} required />
               </label>
 
               <label>
@@ -255,9 +259,19 @@ const completion = Math.round((completionItems.filter(Boolean).length / completi
                 <input name="location" type="text" value={profile.location} placeholder="Dublin, Ireland" />
               </label>
 
+              <label>
+                <span>New password</span>
+                <input name="new_password" type="password" placeholder="Leave blank to keep current password" />
+              </label>
+
               <label class="business-form-full">
                 <span>Headline</span>
                 <input name="headline" type="text" value={profile.headline} placeholder="Hospitality worker, barista, event staff" />
+              </label>
+
+              <label class="business-form-full">
+                <span>Profile image</span>
+                <input name="profile_image" type="file" accept="image/*" />
               </label>
             </div>
 

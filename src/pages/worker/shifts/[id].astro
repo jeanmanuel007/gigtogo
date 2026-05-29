@@ -2,132 +2,30 @@
 import Layout from "../../../layouts/layout.astro";
 import AppSidebar from "../../../components/AppSidebar.astro";
 import WorkerTopActions from "../../../components/workerTopActions.astro";
+import { getProfileImage } from "../../../lib/profileImages";
 import { hasSupabaseConfig, supabaseFetch } from "../../../lib/supabaseServer";
 
 export const prerender = false;
 
-const shiftDetails = [
-  {
-    id: "11111111-1111-4111-8111-111111111111",
-    title: "Barista",
-    company: "Butlers Chocolate Café",
-    type: "Part-time",
-    location: "Stoneybatter, Dublin",
-    address: "12 Manor Street, Dublin 7",
-    time: "Today · 2:00 PM - 8:00 PM",
-    pay: "€14.50/hr",
-    total: "€87.00 estimated",
-    distance: "1.8 km away",
-    tag: "Fast apply",
-    logo: "/butlers.jpg",
-    image: "/butlers.jpg",
-    rating: "4.8",
-    completed: "126 shifts completed",
-    about:
-      "A busy chocolate café looking for a friendly barista to support counter service, drinks, and light closing tasks.",
-    requirements: ["Barista experience", "Comfortable with POS", "Available this afternoon"],
-  },
-  {
-    id: "22222222-2222-4222-8222-222222222222",
-    title: "Event Security",
-    company: "Penneys",
-    type: "Evening",
-    location: "O'Connell Street, Dublin",
-    address: "O'Connell Street, Dublin 1",
-    time: "Tomorrow · 6:00 PM - 12:00 AM",
-    pay: "€17.00/hr",
-    total: "€102.00 estimated",
-    distance: "3.2 km away",
-    tag: "Urgent",
-    logo: "/penneys.jpg",
-    image: "/penneys.jpg",
-    rating: "4.6",
-    completed: "84 shifts completed",
-    about:
-      "Luna Events needs calm, reliable support for guest flow, queue management, and venue safety during an evening event.",
-    requirements: ["Event experience", "Confident communicator", "Evening availability"],
-  },
-  {
-    id: "33333333-3333-4333-8333-333333333333",
-    title: "Kitchen Porter",
-    company: "Forno 500",
-    type: "Full-time",
-    location: "Dame Street, Dublin",
-    address: "Dame Street, Dublin 2",
-    time: "Fri · 7:00 AM - 3:00 PM",
-    pay: "€15.80/hr",
-    total: "€126.40 estimated",
-    distance: "4.1 km away",
-    tag: "New",
-    logo: "/forno.jpg",
-    image: "/forno.jpg",
-    rating: "4.7",
-    completed: "203 shifts completed",
-    about:
-      "Hotel kitchen team looking for help with dishwashing, prep areas, deliveries, and keeping service moving smoothly.",
-    requirements: ["Kitchen experience", "Manual handling helpful", "Morning availability"],
-  },
-  {
-    id: "44444444-4444-4444-8444-444444444444",
-    title: "Wait Staff",
-    company: "Sophie's Restaurant & Bar",
-    type: "Weekend",
-    location: "Grafton Street, Dublin",
-    address: "Grafton Street, Dublin 2",
-    time: "Sat · 12:00 PM - 6:00 PM",
-    pay: "€14.90/hr",
-    total: "€89.40 estimated",
-    distance: "2.6 km away",
-    tag: "Popular",
-    logo: "/sophies.jpg",
-    image: "/sophies.jpg",
-    rating: "4.9",
-    completed: "171 shifts completed",
-    about:
-      "Weekend floor support for a high-footfall cafe. Help with table service, customer care, and resetting stations.",
-    requirements: ["Wait staff experience", "Customer-facing confidence", "Weekend availability"],
-  },
-  {
-    id: "55555555-5555-4555-8555-555555555555",
-    title: "Shift Supervisor",
-    company: "Starbucks",
-    type: "Morning",
-    location: "Ranelagh, Dublin",
-    address: "Ranelagh Road, Dublin 6",
-    time: "Sun · 8:00 AM - 2:00 PM",
-    pay: "€16.20/hr",
-    total: "€97.20 estimated",
-    distance: "5.4 km away",
-    tag: "Featured",
-    logo: "/starbucks.jpg",
-    image: "/starbucks.jpg",
-    rating: "4.8",
-    completed: "241 shifts completed",
-    about:
-      "Morning supervisor cover for opening flow, team support, customer service, and keeping the shift organised.",
-    requirements: ["Supervisor experience", "Coffee service knowledge", "Morning availability"],
-  },
-  {
-    id: "66666666-6666-4666-8666-666666666666",
-    title: "Front of House",
-    company: "Maldron Hotel",
-    type: "Flexible",
-    location: "Smithfield, Dublin",
-    address: "Smithfield, Dublin 7",
-    time: "Mon · 9:00 AM - 5:00 PM",
-    pay: "€15.40/hr",
-    total: "€123.20 estimated",
-    distance: "2.9 km away",
-    tag: "Verified",
-    logo: "/maldron.jpg",
-    image: "/maldron.jpg",
-    rating: "4.7",
-    completed: "188 shifts completed",
-    about:
-      "Front desk and guest support shift for check-ins, directions, luggage questions, and light admin support.",
-    requirements: ["Hotel or reception experience", "Clear communication", "Professional presentation"],
-  },
-];
+const defaultShift = {
+  id: "",
+  title: "Shift",
+  company: "Business",
+  type: "Flexible",
+  location: "Dublin",
+  address: "Dublin",
+  time: "Time to be confirmed",
+  pay: "Pay to be confirmed",
+  total: "Estimated total shown after hours are confirmed",
+  distance: "Nearby",
+  tag: "Open",
+  logo: getProfileImage(),
+  image: "/image_home_1.png",
+  rating: "New",
+  completed: "Posted on GigToGo",
+  about: "This business is looking for reliable shift support.",
+  requirements: ["Arrive on time", "Bring required documents", "Confirm availability before applying"],
+};
 
 const token = Astro.cookies.get("gigtogo_access_token")?.value;
 const userId = Astro.cookies.get("gigtogo_user_id")?.value;
@@ -135,52 +33,64 @@ const id = Astro.params.id ?? "";
 const notice = Astro.url.searchParams.get("notice");
 const error = Astro.url.searchParams.get("error");
 
-let shift = shiftDetails.find((item) => item.id === id) ?? shiftDetails[0];
+let shift = { ...defaultShift, id };
 let application: { id: string; status: string; note: string } | null = null;
+let workerImage = getProfileImage();
+
+if (hasSupabaseConfig() && !token) {
+  return Astro.redirect("/auth/signin?error=Please sign in to view shift details.");
+}
 
 if (hasSupabaseConfig() && token && id) {
   try {
+    if (userId) {
+      const workerRows = await supabaseFetch(
+        `/rest/v1/profiles?id=eq.${userId}&select=profile_image_path&limit=1`,
+        { token }
+      );
+      workerImage = getProfileImage(workerRows?.[0]?.profile_image_path);
+    }
+
     const rows = await supabaseFetch(
       `/rest/v1/shifts?id=eq.${id}&select=id,title,company,business_id,location,shift_date,start_time,end_time,pay_rate,shift_type,description,status&limit=1`,
       { token }
     );
     const row = rows?.[0];
 
-    if (row) {
-      let companyName = row.company;
-
-      try {
-        const profileRows = await supabaseFetch(
-          `/rest/v1/profiles?id=eq.${row.business_id}&select=full_name&limit=1`,
-          { token }
-        );
-        companyName = profileRows?.[0]?.full_name ?? companyName;
-      } catch {
-        companyName = row.company;
-      }
-
-      shift = {
-        id: row.id,
-        title: row.title,
-        company: companyName,
-        type: row.shift_type,
-        location: row.location,
-        address: row.location,
-        time: `${row.shift_date} · ${row.start_time.slice(0, 5)} - ${row.end_time.slice(0, 5)}`,
-        pay: `€${Number(row.pay_rate).toFixed(2)}/hr`,
-        total: "Estimated total shown after hours are confirmed",
-        distance: "Nearby",
-        tag: row.status === "open" ? "Open" : row.status,
-        logo: "/insomnia.jpg",
-        image: "/image_home_1.png",
-        rating: "New",
-        completed: "Posted on GigToGo",
-        about: row.description || "This business is looking for reliable shift support.",
-        requirements: ["Arrive on time", "Bring required documents", "Confirm availability before applying"],
-      };
+    if (!row) {
+      return Astro.redirect("/worker/shifts?error=Shift not found.");
     }
+
+    let companyName = row.company;
+    let companyLogo = getProfileImage();
+
+    try {
+      const profileRows = await supabaseFetch(
+        `/rest/v1/profiles?id=eq.${row.business_id}&select=full_name,profile_image_path&limit=1`,
+        { token }
+      );
+      companyName = profileRows?.[0]?.full_name ?? companyName;
+      companyLogo = getProfileImage(profileRows?.[0]?.profile_image_path);
+    } catch {
+      companyName = row.company;
+    }
+
+    shift = {
+      ...defaultShift,
+      id: row.id,
+      title: row.title,
+      company: companyName,
+      type: row.shift_type,
+      location: row.location,
+      address: row.location,
+      time: `${row.shift_date} · ${row.start_time.slice(0, 5)} - ${row.end_time.slice(0, 5)}`,
+      pay: `€${Number(row.pay_rate).toFixed(2)}/hr`,
+      tag: row.status === "open" ? "Open" : row.status,
+      logo: companyLogo,
+      about: row.description || defaultShift.about,
+    };
   } catch {
-    shift = shiftDetails.find((item) => item.id === id) ?? shiftDetails[0];
+    return Astro.redirect("/worker/shifts?error=Could not load this shift.");
   }
 
   if (userId) {
@@ -233,7 +143,7 @@ const applicationCopy: Record<string, { eyebrow: string; title: string; body: st
           <input type="text" placeholder="Search roles, companies or locations" />
         </div>
 
-        <WorkerTopActions active="shifts" />
+        <WorkerTopActions active="shifts" avatarImage={workerImage} />
       </header>
 
       <div class="worker-ui-breadcrumb">

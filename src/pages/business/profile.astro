@@ -2,6 +2,7 @@
 import Layout from "../../layouts/layout.astro";
 import AppSidebar from "../../components/AppSidebar.astro";
 import WorkerTopActions from "../../components/workerTopActions.astro";
+import { getCoverImage, getProfileImage } from "../../lib/profileImages";
 import { hasSupabaseConfig, supabaseFetch } from "../../lib/supabaseServer";
 
 export const prerender = false;
@@ -20,7 +21,9 @@ let profile = {
   location: "Dublin, Ireland",
   headline: "Hospitality business",
   bio: "",
+  image: getProfileImage(),
 };
+let coverImage = getCoverImage();
 
 let stats = {
   shifts: 0,
@@ -46,7 +49,7 @@ if (hasSupabaseConfig() && !token) {
 if (hasSupabaseConfig() && token && userId) {
   try {
     const profileRows = await supabaseFetch(
-      `/rest/v1/profiles?id=eq.${userId}&select=full_name,email,role,phone,location,headline,bio&limit=1`,
+      `/rest/v1/profiles?id=eq.${userId}&select=full_name,email,role,phone,location,headline,bio,profile_image_path&limit=1`,
       { token }
     );
     const profileRow = profileRows?.[0];
@@ -60,7 +63,9 @@ if (hasSupabaseConfig() && token && userId) {
         location: profileRow.location ?? "Dublin, Ireland",
         headline: profileRow.headline ?? "Hospitality business",
         bio: profileRow.bio ?? "",
+        image: getProfileImage(profileRow.profile_image_path),
       };
+      coverImage = getCoverImage();
     }
 
     const shiftRows = await supabaseFetch(
@@ -90,6 +95,30 @@ if (hasSupabaseConfig() && token && userId) {
       open: shiftRows.filter((row: any) => row.status === "open").length,
     };
   } catch {
+    try {
+      const profileRows = await supabaseFetch(
+        `/rest/v1/profiles?id=eq.${userId}&select=full_name,email,role,phone,location,headline,bio&limit=1`,
+        { token }
+      );
+      const profileRow = profileRows?.[0];
+
+      if (profileRow) {
+        profile = {
+          fullName: profileRow.full_name,
+          email: profileRow.email,
+          role: profileRow.role,
+          phone: profileRow.phone ?? "",
+          location: profileRow.location ?? "Dublin, Ireland",
+          headline: profileRow.headline ?? "Hospitality business",
+          bio: profileRow.bio ?? "",
+          image: getProfileImage(),
+        };
+        coverImage = getCoverImage();
+      }
+    } catch {
+      // Keep the page usable while Supabase fields are being migrated.
+    }
+
     recentShifts = [];
   }
 }
@@ -105,19 +134,19 @@ if (hasSupabaseConfig() && token && userId) {
           <p class="business-page-kicker">Business tools</p>
           <h1 class="business-page-title">Business profile</h1>
         </div>
-        <WorkerTopActions active="profile" accountType="business" />
+        <WorkerTopActions active="profile" accountType="business" avatarImage={profile.image} />
       </header>
 
       {error && <p class="auth-alert error">{error}</p>}
       {notice && <p class="auth-alert notice">{notice}</p>}
 
       <section class="worker-profile-hero">
-        <img src="/insomnia2.jpg" alt="Business profile cover" />
+        <img src={coverImage} alt="Business profile cover" />
         <div class="worker-profile-hero-overlay"></div>
 
         <div class="worker-profile-identity">
-          <span class="worker-profile-avatar-large">
-            <img src="/insomnia.jpg" alt={profile.fullName} />
+          <span class="worker-profile-avatar-large business-logo-avatar">
+            <img src={profile.image} alt={profile.fullName} />
           </span>
           <div>
             <p>{profile.headline || "Business account"}</p>
@@ -235,7 +264,7 @@ if (hasSupabaseConfig() && token && userId) {
             <span>Saved to Supabase</span>
           </div>
 
-          <form method="POST" action="/api/profile/update" class="worker-profile-edit-form">
+          <form method="POST" action="/api/profile/update" class="worker-profile-edit-form" enctype="multipart/form-data">
             <input type="hidden" name="back_to" value="/business/profile" />
             <div class="business-form-grid">
               <label>
@@ -245,7 +274,7 @@ if (hasSupabaseConfig() && token && userId) {
 
               <label>
                 <span>Email</span>
-                <input type="email" value={profile.email} readonly />
+                <input name="email" type="email" value={profile.email} required />
               </label>
 
               <label>
@@ -258,9 +287,19 @@ if (hasSupabaseConfig() && token && userId) {
                 <input name="location" type="text" value={profile.location} placeholder="Dublin, Ireland" />
               </label>
 
+              <label>
+                <span>New password</span>
+                <input name="new_password" type="password" placeholder="Leave blank to keep current password" />
+              </label>
+
               <label class="business-form-full">
                 <span>Headline</span>
                 <input name="headline" type="text" value={profile.headline} placeholder="Cafe, hotel, restaurant, events business" />
+              </label>
+
+              <label class="business-form-full">
+                <span>Profile image or logo</span>
+                <input name="profile_image" type="file" accept="image/*" />
               </label>
             </div>
 

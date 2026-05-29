@@ -2,85 +2,82 @@
 import Layout from "../../../../layouts/layout.astro";
 import AppSidebar from "../../../../components/AppSidebar.astro";
 import WorkerTopActions from "../../../../components/workerTopActions.astro";
-
-const applyShifts = [
-  {
-    id: "11111111-1111-4111-8111-111111111111",
-    title: "Barista",
-    company: "Butlers Chocolate Café",
-    location: "Stoneybatter, Dublin",
-    address: "12 Manor Street, Dublin 7",
-    time: "Today · 2:00 PM - 8:00 PM",
-    pay: "€14.50/hr",
-    total: "€87.00 estimated",
-    logo: "/butlers.jpg",
-    image: "/butlers.jpg",
-  },
-  {
-    id: "22222222-2222-4222-8222-222222222222",
-    title: "Event Security",
-    company: "Penneys",
-    location: "O'Connell Street, Dublin",
-    address: "O'Connell Street, Dublin 1",
-    time: "Tomorrow · 6:00 PM - 12:00 AM",
-    pay: "€17.00/hr",
-    total: "€102.00 estimated",
-    logo: "/penneys.jpg",
-    image: "/penneys.jpg",
-  },
-  {
-    id: "33333333-3333-4333-8333-333333333333",
-    title: "Kitchen Porter",
-    company: "Forno 500",
-    location: "Dame Street, Dublin",
-    address: "Dame Street, Dublin 2",
-    time: "Fri · 7:00 AM - 3:00 PM",
-    pay: "€15.80/hr",
-    total: "€126.40 estimated",
-    logo: "/forno.jpg",
-    image: "/forno.jpg",
-  },
-  {
-    id: "44444444-4444-4444-8444-444444444444",
-    title: "Wait Staff",
-    company: "Sophie's Restaurant & Bar",
-    location: "Grafton Street, Dublin",
-    address: "Grafton Street, Dublin 2",
-    time: "Sat · 12:00 PM - 6:00 PM",
-    pay: "€14.90/hr",
-    total: "€89.40 estimated",
-    logo: "/sophies.jpg",
-    image: "/sophies.jpg",
-  },
-  {
-    id: "55555555-5555-4555-8555-555555555555",
-    title: "Shift Supervisor",
-    company: "Starbucks",
-    location: "Ranelagh, Dublin",
-    address: "Ranelagh Road, Dublin 6",
-    time: "Sun · 8:00 AM - 2:00 PM",
-    pay: "€16.20/hr",
-    total: "€97.20 estimated",
-    logo: "/starbucks.jpg",
-    image: "/starbucks.jpg",
-  },
-  {
-    id: "66666666-6666-4666-8666-666666666666",
-    title: "Front of House",
-    company: "Maldron Hotel",
-    location: "Smithfield, Dublin",
-    address: "Smithfield, Dublin 7",
-    time: "Mon · 9:00 AM - 5:00 PM",
-    pay: "€15.40/hr",
-    total: "€123.20 estimated",
-    logo: "/maldron.jpg",
-    image: "/maldron.jpg",
-  },
-];
+import { getProfileImage } from "../../../../lib/profileImages";
+import { hasSupabaseConfig, supabaseFetch } from "../../../../lib/supabaseServer";
 
 export const prerender = false;
 
-const shift = applyShifts.find((item) => item.id === Astro.params.id) ?? applyShifts[0];
+const token = Astro.cookies.get("gigtogo_access_token")?.value;
+const userId = Astro.cookies.get("gigtogo_user_id")?.value;
+const id = Astro.params.id ?? "";
+let workerImage = getProfileImage();
+
+let shift = {
+  id,
+  title: "Shift",
+  company: "Business",
+  location: "Dublin",
+  address: "Dublin",
+  time: "Time to be confirmed",
+  pay: "Pay to be confirmed",
+  total: "Estimated total shown after hours are confirmed",
+  logo: getProfileImage(),
+  image: "/image_home_1.png",
+};
+
+if (hasSupabaseConfig() && !token) {
+  return Astro.redirect("/auth/signin?error=Please sign in to apply for shifts.");
+}
+
+if (hasSupabaseConfig() && token && id) {
+  try {
+    if (userId) {
+      const workerRows = await supabaseFetch(
+        `/rest/v1/profiles?id=eq.${userId}&select=profile_image_path&limit=1`,
+        { token }
+      );
+      workerImage = getProfileImage(workerRows?.[0]?.profile_image_path);
+    }
+
+    const rows = await supabaseFetch(
+      `/rest/v1/shifts?id=eq.${id}&select=id,title,company,business_id,location,shift_date,start_time,end_time,pay_rate&limit=1`,
+      { token }
+    );
+    const row = rows?.[0];
+
+    if (!row) {
+      return Astro.redirect("/worker/shifts?error=Shift not found.");
+    }
+
+    let companyName = row.company;
+    let companyLogo = getProfileImage();
+
+    try {
+      const profileRows = await supabaseFetch(
+        `/rest/v1/profiles?id=eq.${row.business_id}&select=full_name,profile_image_path&limit=1`,
+        { token }
+      );
+      companyName = profileRows?.[0]?.full_name ?? companyName;
+      companyLogo = getProfileImage(profileRows?.[0]?.profile_image_path);
+    } catch {
+      companyName = row.company;
+    }
+
+    shift = {
+      ...shift,
+      id: row.id,
+      title: row.title,
+      company: companyName,
+      location: row.location,
+      address: row.location,
+      time: `${row.shift_date} · ${row.start_time.slice(0, 5)} - ${row.end_time.slice(0, 5)}`,
+      pay: `€${Number(row.pay_rate).toFixed(2)}/hr`,
+      logo: companyLogo,
+    };
+  } catch {
+    return Astro.redirect("/worker/shifts?error=Could not load this shift.");
+  }
+}
 ---
 
 <Layout title={`Apply for ${shift.title} | GigToGo`}>
@@ -94,7 +91,7 @@ const shift = applyShifts.find((item) => item.id === Astro.params.id) ?? applySh
           <input type="text" placeholder="Search roles, companies or applications" />
         </div>
 
-        <WorkerTopActions active="shifts" />
+        <WorkerTopActions active="shifts" avatarImage={workerImage} />
       </header>
 
       <div class="worker-ui-breadcrumb">
@@ -190,17 +187,17 @@ const shift = applyShifts.find((item) => item.id === Astro.params.id) ?? applySh
           <div class="worker-profile-panel-head">
             <div>
               <p>Profile sent</p>
-              <h2>Mary O'Connor</h2>
+              <h2>Your profile</h2>
             </div>
-            <span>92% complete</span>
+            <span>Ready</span>
           </div>
 
           <div class="worker-apply-profile">
-            <img src="/mary.jpg" alt="Mary O'Connor" />
+            <img src={workerImage} alt="Worker profile" />
             <div>
               <strong>Hospitality worker</strong>
-              <span>36 jobs done · 4.9 rating</span>
-              <small>Skills: Customer care, POS systems, food safety</small>
+              <span>Your account details are sent with the application.</span>
+              <small>Keep your profile updated so businesses can review it.</small>
             </div>
           </div>
         </article>

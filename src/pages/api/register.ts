@@ -23,7 +23,10 @@ export const POST: APIRoute = async (context) => {
   }
 
   try {
-    const data = await supabaseFetch("/auth/v1/signup", {
+    const siteUrl = new URL(context.request.url).origin;
+    const redirectTo = `${siteUrl}/auth/callback`;
+
+    const data = await supabaseFetch(`/auth/v1/signup?redirect_to=${encodeURIComponent(redirectTo)}`, {
       method: "POST",
       body: {
         email,
