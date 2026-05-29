@@ -2,7 +2,7 @@
 import Layout from "../../../layouts/layout.astro";
 import AppSidebar from "../../../components/AppSidebar.astro";
 import WorkerTopActions from "../../../components/workerTopActions.astro";
-import { getProfileImage } from "../../../lib/profileImages";
+import { getProfileImage, getUserProfileImage } from "../../../lib/profileImages";
 import { hasSupabaseConfig, supabaseFetch } from "../../../lib/supabaseServer";
 
 export const prerender = false;
@@ -35,7 +35,7 @@ const error = Astro.url.searchParams.get("error");
 
 let shift = { ...defaultShift, id };
 let application: { id: string; status: string; note: string } | null = null;
-let workerImage = getProfileImage();
+let workerImage = await getUserProfileImage(token, userId);
 
 if (hasSupabaseConfig() && !token) {
   return Astro.redirect("/auth/signin?error=Please sign in to view shift details.");
@@ -43,14 +43,6 @@ if (hasSupabaseConfig() && !token) {
 
 if (hasSupabaseConfig() && token && id) {
   try {
-    if (userId) {
-      const workerRows = await supabaseFetch(
-        `/rest/v1/profiles?id=eq.${userId}&select=profile_image_path&limit=1`,
-        { token }
-      );
-      workerImage = getProfileImage(workerRows?.[0]?.profile_image_path);
-    }
-
     const rows = await supabaseFetch(
       `/rest/v1/shifts?id=eq.${id}&select=id,title,company,business_id,location,shift_date,start_time,end_time,pay_rate,shift_type,description,status&limit=1`,
       { token }

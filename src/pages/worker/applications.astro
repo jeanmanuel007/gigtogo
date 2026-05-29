@@ -2,7 +2,7 @@
 import Layout from "../../layouts/layout.astro";
 import AppSidebar from "../../components/AppSidebar.astro";
 import WorkerTopActions from "../../components/workerTopActions.astro";
-import { getProfileImage } from "../../lib/profileImages";
+import { getProfileImage, getUserProfileImage } from "../../lib/profileImages";
 import { hasSupabaseConfig, supabaseFetch } from "../../lib/supabaseServer";
 
 export const prerender = false;
@@ -20,7 +20,7 @@ const statusLabels: Record<string, string> = {
 };
 
 let applications: Array<any> = [];
-let workerImage = getProfileImage();
+let workerImage = await getUserProfileImage(token, userId);
 
 if (hasSupabaseConfig() && !token) {
   return Astro.redirect("/auth/signin?error=Please sign in to view your applications.");
@@ -28,12 +28,6 @@ if (hasSupabaseConfig() && !token) {
 
 if (hasSupabaseConfig() && token && userId) {
   try {
-    const workerRows = await supabaseFetch(
-      `/rest/v1/profiles?id=eq.${userId}&select=profile_image_path&limit=1`,
-      { token }
-    );
-    workerImage = getProfileImage(workerRows?.[0]?.profile_image_path);
-
     const rows = await supabaseFetch(
       `/rest/v1/shift_applications?worker_id=eq.${userId}&select=id,status,note,created_at,shift_id,shifts(title,company,business_id,location,shift_date,start_time,end_time,pay_rate)&order=created_at.desc`,
       { token }

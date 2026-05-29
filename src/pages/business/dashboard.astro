@@ -50,16 +50,16 @@ if (hasSupabaseConfig() && token && userId) {
     const workerIds = Array.from(
       new Set(applicationRows.map((application: any) => application.worker_id).filter(Boolean))
     );
-    const workerNames = new Map();
+    const workerProfiles = new Map();
 
     if (workerIds.length > 0) {
       const workerRows = await supabaseFetch(
-        `/rest/v1/profiles?id=in.(${workerIds.join(",")})&select=id,full_name`,
+        `/rest/v1/profiles?id=in.(${workerIds.join(",")})&select=id,full_name,profile_image_path`,
         { token }
       );
 
       for (const worker of workerRows) {
-        workerNames.set(worker.id, worker.full_name);
+        workerProfiles.set(worker.id, worker);
       }
     }
 
@@ -82,16 +82,20 @@ if (hasSupabaseConfig() && token && userId) {
       status: shift.status,
     }));
 
-    applicants = applicationRows.slice(0, 3).map((application: any) => {
-      const name = workerNames.get(application.worker_id) ?? "Worker";
+    applicants = applicationRows
+      .filter((application: any) => application.status === "pending")
+      .slice(0, 3)
+      .map((application: any) => {
+        const worker = workerProfiles.get(application.worker_id);
+        const name = worker?.full_name ?? "Worker";
 
-      return {
-        name,
-        role: activeShifts.find((shift) => shift.id === application.shift_id)?.title ?? "Shift applicant",
-        status: application.status,
-        avatar: name.slice(0, 1).toUpperCase(),
-      };
-    });
+        return {
+          name,
+          role: activeShifts.find((shift) => shift.id === application.shift_id)?.title ?? "Shift applicant",
+          avatar: name.slice(0, 1).toUpperCase(),
+          image: worker?.profile_image_path ?? "",
+        };
+      });
   } catch {
     activeShifts = [];
     applicants = [];
@@ -196,10 +200,12 @@ if (hasSupabaseConfig() && token && userId) {
           <div class="business-dashboard-applicant-list">
             {applicants.map((applicant) => (
               <a href="/business/applications">
-                <span>{applicant.avatar}</span>
+                <span>
+                  {applicant.image ? <img src={applicant.image} alt={applicant.name} /> : applicant.avatar}
+                </span>
                 <div>
                   <strong>{applicant.name}</strong>
-                  <small>{applicant.role} · {applicant.status}</small>
+                  <small>{applicant.role} · pending review</small>
                 </div>
               </a>
             ))}
